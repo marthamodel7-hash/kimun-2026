@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+kimun.db
+kimun_test.db
+.env
+node_modules/
+dist/
+.browsers/
+backend/uploads/
+frontend/test-results/
+frontend/dist/
