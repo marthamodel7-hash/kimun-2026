@@ -1,8 +1,7 @@
 {
   "version": 2,
-  "framework": "vite",
-  "installCommand": "npm install --prefix frontend",
-  "buildCommand": "npm run --prefix frontend vercel-build",
+  "installCommand": "cd frontend && npm install",
+  "buildCommand": "cd frontend && npm run vercel-build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
