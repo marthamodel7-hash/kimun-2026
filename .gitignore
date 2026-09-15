@@ -4,11 +4,11 @@ kimun.db
 kimun_test.db
 .env
 node_modules/
-dist/
+/dist/
 .browsers/
 backend/uploads/
 frontend/test-results/
-frontend/dist/
+# frontend/dist/ is committed for Vercel deployment
 *.log
 *.csv
 access_db.py
