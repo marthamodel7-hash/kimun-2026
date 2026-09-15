@@ -3,17 +3,21 @@ import os
 
 
 def _resolve_db_url() -> str:
-    # Isolate from other projects' DATABASE_URL in shared dev machines.
-    # Use Postgres only when explicitly opted in; else local SQLite.
-    if os.getenv("KIMUN_ALLOW_POSTGRES") == "1" and os.getenv("DATABASE_URL"):
-        return os.getenv("DATABASE_URL", "")
+    # Vercel / production: use DATABASE_URL env var (Postgres)
+    # Falls back to local SQLite for development
+    db_url = os.getenv("DATABASE_URL", "")
+    if db_url:
+        # Normalize postgres:// to postgresql:// for SQLAlchemy
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        return db_url
     return os.getenv("KIMUN_DATABASE_URL", "sqlite:///./kimun.db")
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
     DATABASE_URL: str = _resolve_db_url()
-    JWT_SECRET: str = "change-me-in-production-min-32-chars"
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "change-me-in-production-min-32-chars")
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     # AI provider: "gemini" (Google) or "nvidia" (NVIDIA Integrate). Server-side only.
@@ -43,7 +47,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-# Isolate from unrelated DATABASE_URL on shared dev machines (e.g. other projects).
-# Postgres is used only with explicit opt-in; default is local SQLite file.
-if os.getenv("KIMUN_ALLOW_POSTGRES") != "1":
-    settings.DATABASE_URL = os.getenv("KIMUN_DATABASE_URL", "sqlite:///./kimun.db")

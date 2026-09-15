@@ -9,3 +9,6 @@ dist/
 backend/uploads/
 frontend/test-results/
 frontend/dist/
+*.log
+*.csv
+access_db.py

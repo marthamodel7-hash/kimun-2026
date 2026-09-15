@@ -1,0 +1,7 @@
+{
+  "name": "kimun-2026",
+  "private": true,
+  "scripts": {
+    "vercel-build": "cd frontend && npm install && npm run vercel-build"
+  }
+}
