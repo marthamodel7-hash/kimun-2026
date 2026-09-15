@@ -120,9 +120,11 @@ def seed():
     for i, (nm, inst, pay) in enumerate([("Demo Delegate A", "Demo University Karachi", "paid"),
                                         ("Demo Delegate B", "Demo College Lahore", "unpaid"),
                                         ("Demo Delegate C", "Demo Institute Islamabad", "paid")]):
+        import secrets as _tok
         db.add(models.Delegate(name=DEMO_TAG + nm, institution=inst, email=f"del{i}@demo.mail",
                                committee_id=c1.id, country=["Japan", "Brazil", "Kenya"][i],
-                               reg_status="completed", pay_status=pay, amount_paid=8000 if pay == "paid" else 0))
+                               reg_status="completed", pay_status=pay, amount_paid=8000 if pay == "paid" else 0,
+                               registration_token=f"demo-reg-{i}-{_tok.token_hex(8)}"))
     db.commit()
     groups = [
         models.Group(name=DEMO_TAG + "Demo University Karachi", contact_name="Demo Contact K",
@@ -162,11 +164,15 @@ def seed():
     for plat in ["Instagram", "TikTok", "Facebook", "LinkedIn", "YouTube"]:
         db.add(models.SocialAccount(platform=plat, handle="@kimun.demo", connection="not_connected"))
     add = date.fromisoformat("2026-12-18")
-    for i, (z, rol) in enumerate([("Registration", "Greeter"), ("Security", "Usher"), ("Crisis", "Runner"), ("Media", "Photographer")], start=1):
-        db.add(models.Shift(user_id=i, shift_date=add + timedelta(days=i // 3), start_time="09:00",
+    all_users = db.query(models.User).order_by(models.User.id).all()
+    all_user_ids = [u.id for u in all_users]
+    for i, (z, rol) in enumerate([("Registration", "Greeter"), ("Security", "Usher"), ("Crisis", "Runner"), ("Media", "Photographer")]):
+        uid = all_user_ids[i] if i < len(all_user_ids) else all_user_ids[0]
+        db.add(models.Shift(user_id=uid, shift_date=add + timedelta(days=i // 3), start_time="09:00",
                             end_time="13:00", zone=z, role=rol, status="assigned",
                             notes=DEMO_TAG + "sample shift"))
-    for cid, (t, room) in enumerate([("Opening Session", "Hall A"), ("Committee Round 1", "Room 12")], start=1):
+    all_coms = db.query(models.Committee).order_by(models.Committee.id).all()
+    for cid, (t, room) in zip([c.id for c in all_coms[:2]], [("Opening Session", "Hall A"), ("Committee Round 1", "Room 12")]):
         db.add(models.CommitteeSession(committee_id=cid, title=DEMO_TAG + t, session_date=add,
                                        start_time="10:00", end_time="13:00", room=room, chair="TBD",
                                        status="scheduled", agenda=DEMO_TAG + "sample agenda — fictional"))

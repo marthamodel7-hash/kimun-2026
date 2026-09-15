@@ -14,3 +14,4 @@ frontend/dist/
 access_db.py
 
 .vercel
+.env*
