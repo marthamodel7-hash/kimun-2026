@@ -1,19 +1,22 @@
 {
   "version": 2,
-  "installCommand": "cd frontend && npm install",
-  "buildCommand": "cd frontend && npm run vercel-build",
-  "outputDirectory": "frontend/dist",
-  "routes": [
+  "services": {
+    "backend": {
+      "root": ".",
+      "entrypoint": "api/index.py"
+    },
+    "frontend": {
+      "root": "frontend"
+    }
+  },
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.py"
+      "source": "/api/(.*)",
+      "destination": { "service": "backend" }
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/dist/$1"
+      "source": "/(.*)",
+      "destination": { "service": "frontend" }
     }
   ]
 }
