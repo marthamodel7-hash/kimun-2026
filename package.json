@@ -1,7 +1,14 @@
 {
   "name": "kimun-2026",
   "private": true,
+  "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "vercel-build": "cd frontend && npm install && npm run vercel-build"
-  }
+    "dev": "cd frontend && vite --port 5173",
+    "build": "cd frontend && npm run build",
+    "vercel-build": "cd frontend && npm install && npm run vercel-build",
+    "preview": "cd frontend && vite preview"
+  },
+  "dependencies": {},
+  "devDependencies": {}
 }
