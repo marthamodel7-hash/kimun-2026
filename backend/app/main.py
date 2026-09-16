@@ -60,6 +60,18 @@ def health():
     return {"ok": True, "app": "kimun-2026"}
 
 
+@app.get("/api/debug/frontend-path")
+def debug_frontend():
+    """Debug: check if frontend/dist is accessible from the serverless function."""
+    import os
+    _FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+    _FRONTEND_DIST = os.path.normpath(_FRONTEND_DIST)
+    exists = os.path.isdir(_FRONTEND_DIST)
+    files = os.listdir(_FRONTEND_DIST) if exists else []
+    return {"path": _FRONTEND_DIST, "exists": exists, "files": files[:20],
+            "dirname": os.path.dirname(__file__)}
+
+
 # ─── Serve frontend static files (Vercel deployment) ────────────────
 _FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
 _FRONTEND_DIST = os.path.normpath(_FRONTEND_DIST)
