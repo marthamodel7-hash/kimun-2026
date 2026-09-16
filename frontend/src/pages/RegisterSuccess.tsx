@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { VERCEL_BYPASS } from "../api";
 import LogoHero from "../components/LogoHero";
 
 export function RegisterSuccess() {
@@ -20,7 +21,7 @@ export function RegisterSuccess() {
     try {
       const fd = new FormData();
       fd.append("f", file);
-      const r = await fetch("/api/public/upload", { method: "POST", body: fd });
+      const r = await fetch("/api/public/upload", { method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS }, body: fd });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || "Upload failed");
       setScreenshot(data.url);
@@ -35,7 +36,7 @@ export function RegisterSuccess() {
     setErr("");
     try {
       const r = await fetch("/api/public/payment", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS },
         body: JSON.stringify({ reference: ref, payment_reference: txnRef, screenshot_url: screenshot }),
       });
       const data = await r.json();

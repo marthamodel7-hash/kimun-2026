@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, toast } from "../api";
+import { api, toast, VERCEL_BYPASS } from "../api";
 
 export function useFetch<T>(path: string, deps: unknown[] = []): { data: T | null; loading: boolean; err: string; reload: () => void } {
   const [data, setData] = useState<T | null>(null);
@@ -36,7 +36,7 @@ export function UploadButton({ onUrl, label }: { onUrl: (url: string) => void; l
         try {
           const fd = new FormData();
           fd.append("f", f);
-          const r = await fetch("/api/uploads", { method: "POST", headers: api.token ? { Authorization: `Bearer ${api.token}` } : {}, body: fd });
+          const r = await fetch("/api/uploads", { method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS, ...(api.token ? { Authorization: `Bearer ${api.token}` } : {}) }, body: fd });
           if (!r.ok) throw new Error(await r.text());
           onUrl((await r.json()).url);
           toast("File uploaded");

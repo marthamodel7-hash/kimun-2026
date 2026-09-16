@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { VERCEL_BYPASS } from "../api";
 import LogoHero from "../components/LogoHero";
 
 type Committee = { id: number; name: string; type: string; capacity: number };
@@ -27,7 +28,7 @@ export function Register() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/public/committees").then(r => r.json()).then(setCommittees).catch(() => {});
+    fetch("/api/public/committees", { headers: { "x-vercel-protection-bypass": VERCEL_BYPASS } }).then(r => r.json()).then(setCommittees).catch(() => {});
   }, []);
 
   function addMember() {
@@ -61,7 +62,7 @@ export function Register() {
         body.head_delegate_index = headIdx;
       }
       const r = await fetch("/api/public/register", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        method: "POST", headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS }, body: JSON.stringify(body),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || "Registration failed");

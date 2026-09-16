@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { VERCEL_BYPASS } from "../api";
 import LogoHero from "../components/LogoHero";
 
 export function DeptPortalLogin() {
@@ -10,7 +11,7 @@ export function DeptPortalLogin() {
     setErr(""); setLoading(true);
     try {
       const r = await fetch("/api/public/apply/login", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS },
         body: JSON.stringify({ reference: ref.trim() }),
       });
       const data = await r.json();

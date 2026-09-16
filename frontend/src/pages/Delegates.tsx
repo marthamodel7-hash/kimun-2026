@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, toast } from "../api";
+import { api, toast, VERCEL_BYPASS } from "../api";
 import { useFetch, Loading, Err, Empty } from "../components/UI";
 
 export function Delegates() {
@@ -38,7 +38,7 @@ export function Delegates() {
           <span className="muted">{rows.length} records</span>
           <a className="btn ghost" href="/api/delegates/export" onClick={(e) => {
             e.preventDefault();
-            fetch("/api/delegates/export", { headers: api.token ? { Authorization: `Bearer ${api.token}` } : {} })
+            fetch("/api/delegates/export", { headers: { "x-vercel-protection-bypass": VERCEL_BYPASS, ...(api.token ? { Authorization: `Bearer ${api.token}` } : {}) } })
               .then((r) => r.blob()).then((b) => {
                 const a = document.createElement("a");
                 a.href = URL.createObjectURL(b); a.download = "delegates.csv"; a.click();
@@ -51,7 +51,7 @@ export function Delegates() {
               const fd = new FormData();
               fd.append("f", f);
               try {
-                const r = await fetch("/api/delegates/import", { method: "POST", headers: api.token ? { Authorization: `Bearer ${api.token}` } : {}, body: fd });
+                const r = await fetch("/api/delegates/import", { method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS, ...(api.token ? { Authorization: `Bearer ${api.token}` } : {}) }, body: fd });
                 if (!r.ok) throw new Error(await r.text());
                 const j = await r.json();
                 toast(`Imported ${j.imported}, failed ${j.failed}`);

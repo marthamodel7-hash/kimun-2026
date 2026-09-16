@@ -3,6 +3,7 @@
  * KIMUN 2026 • INTERNAL OPERATIONS
  */
 import { useState, useEffect } from "react";
+import { VERCEL_BYPASS } from "../api";
 import { useNavigate } from "react-router-dom";
 
 /* ── Palette ── */
@@ -69,7 +70,7 @@ export function TeamPortalLogin() {
     try {
       const r = await fetch("/api/public/team/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS },
         body: JSON.stringify({ reference: ref.trim() }),
       });
       const data = await r.json();

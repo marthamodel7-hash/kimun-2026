@@ -49,6 +49,7 @@ PERMISSIONS: dict[str, set[str]] = {
     "risks": STAFF,
     "event_control": STAFF | {"volunteer"},
     "admin": LEADERSHIP,
+    "settings": LEADERSHIP,
     "ai": STAFF,
 }
 

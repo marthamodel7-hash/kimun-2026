@@ -1,9 +1,11 @@
+export const VERCEL_BYPASS = "z489jDHwn3hCDxpUjZJGakN0DKGEZGTz";
+
 export const api = {
   token: localStorage.getItem("kimun_token") || "",
   async req(path: string, opts: RequestInit = {}) {
     const r = await fetch(path, {
       ...opts,
-      headers: { "Content-Type": "application/json", ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}), ...(opts.headers || {}) }
+      headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS, ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}), ...(opts.headers || {}) }
     });
     if (r.status === 401) { localStorage.removeItem("kimun_token"); if (location.pathname !== "/login") location.href = "/login"; }
     if (!r.ok) throw new Error((await r.text()).slice(0, 400));
@@ -14,13 +16,11 @@ export const api = {
   put: (p: string, b: unknown) => api.req(p, { method: "PUT", body: JSON.stringify(b) }),
   del: (p: string) => api.req(p, { method: "DELETE" }),
   async download(path: string, filename: string) {
-    const r = await fetch(path, { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} });
+    const r = await fetch(path, { headers: { "x-vercel-protection-bypass": VERCEL_BYPASS, ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) } });
     if (!r.ok) throw new Error((await r.text()).slice(0, 400));
     const blob = await r.blob();
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
+    a.href = URL.createObjectURL(blob); a.download = filename; a.click();
     URL.revokeObjectURL(a.href);
   }
 };

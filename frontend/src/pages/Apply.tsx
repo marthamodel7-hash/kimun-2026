@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { VERCEL_BYPASS } from "../api";
 import LogoHero from "../components/LogoHero";
 
 const DEPTS = ["Security", "PR", "Media", "Marketing", "Organizing", "Academics", "Outreach", "Technical", "Brand Ambassadors"];
@@ -25,7 +26,7 @@ export function Apply() {
     try {
       const fd = new FormData();
       fd.append("f", file);
-      const r = await fetch("/api/public/apply/upload", { method: "POST", body: fd });
+      const r = await fetch("/api/public/apply/upload", { method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS }, body: fd });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || "Upload failed");
       setPhotoUrl(data.url);
@@ -53,7 +54,7 @@ export function Apply() {
     setErr(""); setLoading(true);
     try {
       const r = await fetch("/api/public/apply", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS },
         body: JSON.stringify({ name, phone, email, city, photo_url: photoUrl, experience, department_preference: dept }),
       });
       const data = await r.json();
