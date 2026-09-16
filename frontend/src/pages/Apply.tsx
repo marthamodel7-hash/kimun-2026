@@ -11,6 +11,7 @@ export function Apply() {
   const [city, setCity] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoPreview, setPhotoPreview] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [experience, setExperience] = useState("");
   const [dept, setDept] = useState("");
   const [err, setErr] = useState("");
@@ -21,6 +22,7 @@ export function Apply() {
 
   async function handlePhoto(file: File) {
     if (!file) return;
+    setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
     setUploading(true);
     setErr("");
@@ -75,9 +77,20 @@ export function Apply() {
   async function submit() {
     setErr(""); setLoading(true);
     try {
+      // Send as multipart to avoid Vercel's 4.5MB JSON body limit
+      const fd = new FormData();
+      fd.append("name", name);
+      fd.append("phone", phone);
+      fd.append("email", email);
+      fd.append("city", city);
+      fd.append("experience", experience);
+      fd.append("department_preference", dept);
+      if (photoFile) {
+        fd.append("photo", photoFile, "photo.jpg");
+      }
       const r = await fetch("/api/public/apply", {
-        method: "POST", headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS },
-        body: JSON.stringify({ name, phone, email, city, photo_url: photoUrl, experience, department_preference: dept }),
+        method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS },
+        body: fd,
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || "Application failed");
@@ -89,7 +102,7 @@ export function Apply() {
     }
   }
 
-  const valid = name.trim() && email.trim() && phone.trim() && city.trim() && experience.trim() && dept && photoUrl;
+  const valid = name.trim() && email.trim() && phone.trim() && city.trim() && experience.trim() && dept && photoFile;
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>

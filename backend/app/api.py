@@ -1384,15 +1384,40 @@ class ApplyIn(BaseModel):
 
 
 @router.post("/public/apply")
-def public_apply(body: ApplyIn, db: Session = Depends(get_db)):
-    """Submit a volunteer application. Creates Application record + sends notification."""
+async def public_apply(
+    name: str = "", phone: str = "", email: str = "", city: str = "",
+    experience: str = "", department_preference: str = "",
+    photo: UploadFile = File(None),
+    db: Session = Depends(get_db),
+):
+    """Submit a volunteer application. Accepts multipart form data."""
     from app.services_activity import notify as _notify
-    if db.query(models.Application).filter_by(email=body.email.strip()).first():
+    if not name or not email:
+        raise HTTPException(400, "Name and email are required")
+    if db.query(models.Application).filter_by(email=email.strip()).first():
         raise HTTPException(409, "You have already applied with this email")
+    # Handle photo upload inline
+    photo_url = ""
+    if photo and photo.filename:
+        ext = os.path.splitext(photo.filename)[1].lower()
+        if ext in {".png", ".jpg", ".jpeg", ".webp"}:
+            data = await photo.read()
+            if len(data) <= 5 * 1024 * 1024:
+                from app.uploads import UPLOAD_DIR, _is_vercel
+                fname = f"applicant-{_secrets.token_hex(8)}{ext}"
+                if _is_vercel:
+                    import base64
+                    b64 = base64.b64encode(data).decode()
+                    photo_url = f"data:{photo.content_type or 'image/png'};base64,{b64}"
+                else:
+                    os.makedirs(UPLOAD_DIR, exist_ok=True)
+                    with open(os.path.join(UPLOAD_DIR, fname), "wb") as out:
+                        out.write(data)
+                    photo_url = f"/uploads/{fname}"
     a = models.Application(
-        name=body.name.strip(), phone=body.phone, email=body.email.strip(),
-        city=body.city, photo_url=body.photo_url, experience=body.experience,
-        department_preference=body.department_preference, status="applied")
+        name=name.strip(), phone=phone, email=email.strip(),
+        city=city, photo_url=photo_url, experience=experience,
+        department_preference=department_preference, status="applied")
     db.add(a); db.commit(); db.refresh(a)
     # send confirmation email to applicant
     from app.services_email import send_application_confirmation
