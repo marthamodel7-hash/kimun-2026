@@ -58,7 +58,7 @@ export function Apply() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || "Application failed");
-      window.location.href = "/apply/success";
+      window.location.href = "/";
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Application failed");
     } finally {

@@ -84,8 +84,9 @@ export default function LogoHero({ size = 110, showBrand = true, subtitle, style
           alt="KIMUN"
           style={{
             position: "absolute",
-            top: ringW + 1,
-            left: ringW + 1,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
             width: size,
             height: size,
             borderRadius: "50%",
@@ -99,8 +100,9 @@ export default function LogoHero({ size = 110, showBrand = true, subtitle, style
         {/* Subtle gold shimmer sweep */}
         <div style={{
           position: "absolute",
-          top: ringW + 1,
-          left: ringW + 1,
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
           width: size,
           height: size,
           borderRadius: "50%",
