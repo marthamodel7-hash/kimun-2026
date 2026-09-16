@@ -69,14 +69,38 @@ def debug_frontend():
     exists = os.path.isdir(_FRONTEND_DIST)
     files = os.listdir(_FRONTEND_DIST) if exists else []
     return {"path": _FRONTEND_DIST, "exists": exists, "files": files[:20],
-            "dirname": os.path.dirname(__file__)}
+            "dirname": os.path.dirname(__file__), "cwd": os.getcwd()}
+
+
+@app.get("/api/debug/tree")
+def debug_tree():
+    """Debug: show directory tree around the function."""
+    import os
+    here = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.normpath(os.path.join(here, ".."))
+    result = {"here": here, "project_root": project_root, "cwd": os.getcwd()}
+    # Check common locations
+    for name, path in [
+        ("root", project_root),
+        ("root/frontend", os.path.join(project_root, "frontend")),
+        ("root/frontend/dist", os.path.join(project_root, "frontend", "dist")),
+        ("root/api", os.path.join(project_root, "api")),
+    ]:
+        result[name] = os.path.isdir(path)
+    # List project root
+    try:
+        result["root_files"] = os.listdir(project_root)[:30]
+    except:
+        result["root_files"] = "error"
+    return result
 
 
 # ─── Serve frontend static files (Vercel deployment) ────────────────
 _FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
 _FRONTEND_DIST = os.path.normpath(_FRONTEND_DIST)
+_APP_HAS_FRONTEND = os.path.isdir(_FRONTEND_DIST)
 
-if os.path.isdir(_FRONTEND_DIST):
+if _APP_HAS_FRONTEND:
     _assets_dir = os.path.join(_FRONTEND_DIST, "assets")
     if os.path.isdir(_assets_dir):
         app.mount("/assets", StaticFiles(directory=_assets_dir), name="static-assets")
