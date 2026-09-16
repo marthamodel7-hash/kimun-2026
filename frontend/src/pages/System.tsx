@@ -77,8 +77,10 @@ export function Notifications() {
 
 export function Settings() {
   const { data: st } = useFetch<any>("/api/ai/status");
+  const [wiping, setWiping] = useState(false);
+  const [wipingAll, setWipingAll] = useState(false);
   return (
-    <div><h2>Settings & AI configuration</h2>
+    <div><h2>Settings & Data Management</h2>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))" }}>
         <div className="glass"><h3>AI provider (server-side only)</h3>
           <div className="muted">Provider: {st?.provider} · Base: {st?.base_url}</div><div className="muted">Model: {st?.model}</div>
@@ -86,7 +88,72 @@ export function Settings() {
           <div className="muted mt">Set the provider key in backend/.env (AI_PROVIDER=gemini|nvidia). Keys never touch the browser.</div>
         </div>
         <div className="glass"><h3>Social integrations</h3><div className="muted">Accounts show <b>Not Connected</b> until real OAuth/API keys are added. Metrics are never fabricated.</div></div>
-        <div className="glass"><h3>Seed data</h3><div className="muted">All [DEMO] rows are fictional. Wipe: <code>python -m app.seed --wipe</code> in backend/.</div></div>
+      </div>
+
+      {/* ── Wipe Demo Data ── */}
+      <div className="glass mt" style={{ borderLeft: "3px solid #ff3366" }}>
+        <h3 style={{ color: "#ff3366", marginTop: 0 }}>Danger Zone</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Wipe Demo Data</div>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 10 }}>Removes all <code>[DEMO]</code> tagged rows (delegates, tasks, sponsors, etc). Your real data stays intact.</div>
+            <button className="btn" disabled={wiping} style={{ background: "rgba(255,51,102,0.15)", borderColor: "rgba(255,51,102,0.4)" }}
+              onClick={async () => {
+                if (!confirm("Delete ALL demo data? Real data will NOT be affected.")) return;
+                setWiping(true);
+                try { const r = await api.post("/api/admin/wipe-demo", {}); toast(`Wiped ${r.deleted} demo records`); }
+                catch (e) { toast(String(e)); }
+                finally { setWiping(false); }
+              }}>{wiping ? "Wiping…" : "🗑 Wipe Demo Data"}</button>
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Wipe EVERYTHING</div>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 10 }}>Nuclear option — deletes all data, all users, all records. Only use if starting completely fresh.</div>
+            <button className="btn" disabled={wipingAll} style={{ background: "rgba(255,51,102,0.25)", borderColor: "rgba(255,51,102,0.6)" }}
+              onClick={async () => {
+                if (!confirm("⚠️ DELETE EVERYTHING? This cannot be undone.")) return;
+                if (!confirm("Are you REALLY sure? All delegates, tasks, sponsors, everything will be gone.")) return;
+                setWipingAll(true);
+                try { await api.post("/api/admin/wipe-all", {}); toast("All data wiped"); localStorage.removeItem("kimun_token"); window.location.href = "/login"; }
+                catch (e) { toast(String(e)); }
+                finally { setWipingAll(false); }
+              }}>{wipingAll ? "Deleting…" : "💀 Wipe EVERYTHING"}</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Adding Real Data ── */}
+      <div className="glass mt" style={{ borderLeft: "3px solid #00ff88" }}>
+        <h3 style={{ color: "#00ff88", marginTop: 0 }}>Adding Real Data</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16, fontSize: 14 }}>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>📋 Delegates</div>
+            <div className="muted">Go to <b>Delegates</b> → use the <b>Import CSV</b> button. Or click <b>+ Add</b> to add one at a time. Columns: name, institution, email, country, phone.</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>🏛️ Committees</div>
+            <div className="muted">Go to <b>Committees</b> → <b>+ Add</b>. Enter name, type, chair, room. Then assign countries via <b>Allocation</b>.</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>🏢 Groups / Delegations</div>
+            <div className="muted">Go to <b>Delegations</b> → <b>+ Add</b>. Enter group name, contact info. Then add delegates to the group.</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>💰 Sponsors</div>
+            <div className="muted">Go to <b>Sponsors</b> → <b>+ Add</b>. Track packages, payments, and deliverables.</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>📋 Tasks</div>
+            <div className="muted">Go to <b>Tasks</b> → <b>+ Add</b>. Assign to departments, set priorities, due dates, and recurrence.</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>👥 Team Members</div>
+            <div className="muted">Go to <b>Settings</b> → use the API to create users with roles. Each gets a portal login.</div>
+          </div>
+        </div>
+        <div className="muted mt" style={{ fontSize: 13 }}>
+          <b>CSV Import tip:</b> Export a blank CSV from any section to see the column headers, fill in your data, then re-import.
+        </div>
       </div>
     </div>
   );

@@ -2459,3 +2459,54 @@ def pr_delete_release(rid: int, u=Depends(require_team_can_manage), db: Session 
         raise HTTPException(404, "Press release not found")
     db.delete(pr); db.commit()
     return {"ok": True}
+
+
+# =====================================================================
+# DEMO DATA MANAGEMENT — wipe demo rows, keep real data
+# =====================================================================
+
+@router.post("/admin/wipe-demo", dependencies=[Depends(require("settings"))])
+def wipe_demo_data(u=Depends(current_user), db: Session = Depends(get_db)):
+    """Delete all [DEMO] prefixed rows + seed user sg@kimun.demo. Real data untouched."""
+    deleted = 0
+    # wipe demo-tagged records across key tables
+    for model_cls in [models.Delegate, models.Group, models.Committee, models.Sponsor,
+                      models.Task, models.Application, models.User, models.Department,
+                      models.Transaction, models.Vendor, models.Campaign, models.Asset,
+                      models.ContentIdea, models.ContentItem, models.Video,
+                      models.SocialAccount, models.Ambassador, models.SchoolContact,
+                      models.PressRelease, models.PressContact, models.SupplyItem,
+                      models.Room, models.VenueCheck, models.ProcurementItem,
+                      models.Ticket, models.MediaItem, models.EmergencyContact,
+                      models.SecurityZone, models.Incident, models.Document,
+                      models.Approval, models.Risk, models.ActivityEvent,
+                      models.Notification, models.Shift, models.CommitteeSession,
+                      models.AssetVersion, models.DelegateNote, models.StudyGuide,
+                      models.CommitteeCountry, models.SponsorDeliverable,
+                      models.TaskComment]:
+        try:
+            rows = db.query(model_cls).all()
+            for r in rows:
+                name = getattr(r, "name", "") or getattr(r, "title", "") or getattr(r, "email", "") or ""
+                if "[DEMO]" in str(name) or str(name).startswith("[DEMO]"):
+                    db.delete(r)
+                    deleted += 1
+        except Exception:
+            pass  # table may not exist
+    # also wipe the seed demo user
+    demo_user = db.query(models.User).filter_by(email="sg@kimun.demo").first()
+    if demo_user:
+        db.delete(demo_user)
+        deleted += 1
+    db.commit()
+    emit(db, u.email, "wiped_demo", "system", 0, f"Wiped {deleted} demo records")
+    return {"ok": True, "deleted": deleted}
+
+
+@router.post("/admin/wipe-all", dependencies=[Depends(require("settings"))])
+def wipe_all_data(u=Depends(current_user), db: Session = Depends(get_db)):
+    """Nuclear option: delete EVERYTHING. Only super_admin allowed."""
+    from app.seed import wipe
+    wipe(db)
+    emit(db, u.email, "wiped_all", "system", 0, "Full database wipe")
+    return {"ok": True, "message": "All data wiped"}

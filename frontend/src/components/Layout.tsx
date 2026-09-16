@@ -49,7 +49,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <button className="btn ghost menu-btn" onClick={() => setOpen(!open)}>☰ Menu</button>
           <SearchBox />
           <NotifBadge />
-          <div className="muted" style={{ fontSize: 13 }}>Demo seed rows are tagged <b>[DEMO]</b> — fictional, never real data.</div>
         </div>
         {children}
         <div className="toast" id="toasts" />
