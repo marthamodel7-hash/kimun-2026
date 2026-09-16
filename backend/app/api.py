@@ -5,7 +5,7 @@ import logging
 import os
 import secrets as _sec
 from datetime import date, datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import PlainTextResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -1385,8 +1385,12 @@ class ApplyIn(BaseModel):
 
 @router.post("/public/apply")
 async def public_apply(
-    name: str = "", phone: str = "", email: str = "", city: str = "",
-    experience: str = "", department_preference: str = "",
+    name: str = Form(""),
+    phone: str = Form(""),
+    email: str = Form(""),
+    city: str = Form(""),
+    experience: str = Form(""),
+    department_preference: str = Form(""),
     photo: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
