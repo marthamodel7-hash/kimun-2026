@@ -1,6 +1,7 @@
 """All API routers — REST/JSON, auth enforced, validated, audited via ActivityEvent."""
 import csv
 import io
+import logging
 import os
 import secrets as _sec
 from datetime import date, datetime, timedelta
@@ -20,6 +21,7 @@ from app.services_ai import AIService, MODEL_REGISTRY, ALLOWED_TASKS
 from app.core_config import settings
 
 router = APIRouter()
+_log = logging.getLogger("api")
 
 
 # ---------- auth ----------
@@ -31,7 +33,7 @@ class LoginIn(BaseModel):
 class UserIn(BaseModel):
     name: str
     email: str
-    password: str = "kimun123"
+    password: str
     role: str = "team_member"
     department_id: int | None = None
     phone: str = ""
@@ -864,15 +866,15 @@ def approve_payment(did: int, body: ApprovePaymentIn, db: Session = Depends(get_
             _code = _ensure_checkin_code(d)
             _segno.make(_code).save(os.path.join(_UD, _fname), scale=6, border=2)
             d.badge_url = f"/uploads/{_fname}"
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.warning("Badge generation failed for delegate %s: %s", d.id, exc)
     db.commit()
     # notify delegate via email
     try:
         from app.services_email import send_payment_confirmation
         send_payment_confirmation(d)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("Payment confirmation email failed for %s: %s", d.email, exc)
     emit(db, u.email, "payment_approved", "delegates", did,
          f"Payment approved for {d.name} — ${d.amount_paid}")
     return {"ok": True, "pay_status": d.pay_status, "amount_paid": d.amount_paid, "badge_url": d.badge_url}
@@ -952,7 +954,13 @@ def vote_idea(iid: int, db: Session = Depends(get_db), u=Depends(current_user)):
     o = db.get(models.ContentIdea, iid)
     if not o:
         raise HTTPException(404, "Not found")
-    o.votes += 1; db.commit()
+    voters = [e.strip() for e in (o.voted_by or "").split(",") if e.strip()]
+    if u.email in voters:
+        return {"votes": o.votes, "already_voted": True}
+    o.votes += 1
+    voters.append(u.email)
+    o.voted_by = ",".join(voters)
+    db.commit()
     emit(db, u.email, "voted", "ideas", iid, o.title)
     return {"votes": o.votes}
 
@@ -1024,9 +1032,9 @@ def notif_unread_count(db: Session = Depends(get_db), u=Depends(current_user)):
 
 
 @router.post("/notifications/{nid}/read", dependencies=[Depends(require("dashboard"))])
-def read_notif(nid: int, db: Session = Depends(get_db)):
+def read_notif(nid: int, db: Session = Depends(get_db), u=Depends(current_user)):
     n = db.get(models.Notification, nid)
-    if n:
+    if n and (n.user_email == u.email or n.user_email == ""):
         n.read = True; db.commit()
     return {"ok": True}
 
@@ -1145,8 +1153,8 @@ def public_register(body: RegistrationIn, db: Session = Depends(get_db)):
                 _segno.make(d.checkin_code).save(os.path.join(_UD, _fname), scale=6, border=2)
                 d.badge_url = f"/uploads/{_fname}"
                 db.commit()
-            except Exception:
-                pass  # QR is non-critical; registration still succeeds
+            except Exception as exc:
+                _log.warning("QR badge generation failed for delegate %s: %s", d.id, exc)
         # set head delegate
         head_idx = min(body.head_delegate_index, len(delegate_ids) - 1)
         grp.head_delegate_id = delegate_ids[head_idx]

@@ -332,6 +332,7 @@ class ContentIdea(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     platform: Mapped[str] = mapped_column(String(60), default="Instagram")
     votes: Mapped[int] = mapped_column(Integer, default=0)
+    voted_by: Mapped[str] = mapped_column(Text, default="")  # comma-separated emails for dedup
     status: Mapped[str] = mapped_column(String(30), default="submitted")
 
 

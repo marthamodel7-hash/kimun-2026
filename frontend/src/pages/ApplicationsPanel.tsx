@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { toast } from "../api";
+import { api, toast } from "../api";
 
 type Application = {
   id: number; name: string; phone: string; email: string; city: string;
@@ -32,8 +32,8 @@ export function ApplicationsPanel() {
     const params = new URLSearchParams();
     if (filter) params.set("status", filter);
     if (q) params.set("q", q);
-    fetch(`/api/applications?${params}`).then(r => r.json()).then(setApps).catch(() => {});
-    fetch("/api/departments").then(r => r.json()).then(setDepts).catch(() => {});
+    api.get(`/api/applications?${params}`).then(setApps).catch(() => {});
+    api.get("/api/departments").then(setDepts).catch(() => {});
   }
   useEffect(load, [filter, q]);
   // auto-refresh every 15 seconds so new applications appear without manual re-open
@@ -59,11 +59,7 @@ export function ApplicationsPanel() {
       if (intvDate) body.interview_date = new Date(intvDate).toISOString();
       if (intvNotes) body.interview_notes = intvNotes;
       if (assignDept) body.department_id = assignDept;
-      const r = await fetch(`/api/applications/${selected.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Update failed");
+      const data = await api.put(`/api/applications/${selected.id}`, body);
       toast(status ? `Application → ${status}` : "Updated");
       setSelected(null);
       load();
