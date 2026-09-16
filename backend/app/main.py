@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from collections import deque
+import os
 import time
 from app.db import init_db
 from app.api import router, sub
@@ -56,3 +58,24 @@ mount_uploads(app)
 @app.get("/api/health")
 def health():
     return {"ok": True, "app": "kimun-2026"}
+
+
+# ─── Serve frontend static files (Vercel deployment) ────────────────
+_FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+_FRONTEND_DIST = os.path.normpath(_FRONTEND_DIST)
+
+if os.path.isdir(_FRONTEND_DIST):
+    _assets_dir = os.path.join(_FRONTEND_DIST, "assets")
+    if os.path.isdir(_assets_dir):
+        app.mount("/assets", StaticFiles(directory=_assets_dir), name="static-assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Serve frontend SPA — try static file, fall back to index.html."""
+        file_path = os.path.join(_FRONTEND_DIST, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        index = os.path.join(_FRONTEND_DIST, "index.html")
+        if os.path.isfile(index):
+            return FileResponse(index)
+        return JSONResponse({"detail": "Not found"}, status_code=404)
