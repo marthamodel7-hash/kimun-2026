@@ -22,8 +22,8 @@ export function RegisterSuccess() {
       const fd = new FormData();
       fd.append("f", file);
       const r = await fetch("/api/public/upload", { method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS }, body: fd });
+      if (!r.ok) throw new Error((await r.text()).slice(0, 200));
       const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Upload failed");
       setScreenshot(data.url);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Upload failed");

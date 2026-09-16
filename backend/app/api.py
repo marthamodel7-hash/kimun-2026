@@ -1415,8 +1415,14 @@ async def apply_photo_upload(f: UploadFile = File(...)):
     data = await f.read()
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(400, "File over 5MB limit")
-    from app.uploads import UPLOAD_DIR
+    from app.uploads import UPLOAD_DIR, _is_vercel
     name = f"applicant-{_secrets.token_hex(8)}{ext}"
+    if _is_vercel:
+        import base64
+        b64 = base64.b64encode(data).decode()
+        mime = f.content_type or "image/png"
+        return {"url": f"data:{mime};base64,{b64}", "filename": f.filename, "bytes": len(data), "storage": "inline"}
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     with open(os.path.join(UPLOAD_DIR, name), "wb") as out:
         out.write(data)
     return {"url": f"/uploads/{name}", "filename": f.filename, "bytes": len(data)}
