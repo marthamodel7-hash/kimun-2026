@@ -76,7 +76,7 @@ export function Register() {
   const valid1 = name.trim() && email.trim();
   const valid2 = regType === "individual" || (members.length >= 2 && members.every(m => m.name.trim()));
   const valid3 = primaryCommittee.trim() !== "";
-  const valid = valid1 && valid2 && valid3;
+  const stepValid = step === 0 ? valid1 : step === 1 ? valid1 && valid2 : step === 2 ? valid1 && valid2 && valid3 : valid1 && valid2 && valid3;
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
@@ -227,9 +227,9 @@ export function Register() {
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
             {step > 0 ? <button className="btn ghost" onClick={() => setStep(step - 1)}>Back</button> : <div />}
             {step < 3 ? (
-              <button className="btn" disabled={!valid} onClick={() => setStep(step + 1)}>Next</button>
+              <button className="btn" disabled={!stepValid} onClick={() => setStep(step + 1)}>Next</button>
             ) : (
-              <button className="btn" disabled={loading || !valid} onClick={submit}>
+              <button className="btn" disabled={loading || !valid1 || !valid2 || !valid3} onClick={submit}>
                 {loading ? "Registering..." : "Submit Registration"}
               </button>
             )}
