@@ -22,7 +22,7 @@ export default function Login() {
     </div>
   );
   async function go() {
-    try { const r = await api.post("/api/auth/login", { email, password }); setToken(r.token); nav("/"); }
+    try { const r = await api.post("/api/auth/login", { email, password }); setToken(r.token); nav("/dashboard"); }
     catch { setErr("Invalid credentials"); }
   }
 }
