@@ -46,7 +46,6 @@ function Guard({ children }: { children: ReactElement }) {
 }
 
 function LandingOrDash() {
-  if (api.token) return <Guard><Dashboard /></Guard>;
   return <Home />;
 }
 
@@ -95,6 +94,7 @@ export function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/" element={<LandingOrDash />} />
+                <Route path="/dashboard" element={<Guard><Dashboard /></Guard>} />
                 <Route path="/reports" element={<Guard><Report /></Guard>} />
                 <Route path="/tasks" element={<Guard><Tasks /></Guard>} />
                 <Route path="/team-members" element={<Guard><Team /></Guard>} />

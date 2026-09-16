@@ -7,7 +7,7 @@ const LEAD = ["super_admin", "secretary_general", "deputy_sg", "director_general
 const STAFF = [...LEAD, "dept_head", "team_member"];
 // Mirrors backend PERMISSIONS in app/deps.py — the server still enforces on every call.
 const NAV: [string, [string, string, string[]][]][] = [
-  ["Command Center", [["/", "Dashboard", [...STAFF, "volunteer"]], ["/reports", "Event Report", STAFF], ["/activity", "Activity & Audit", STAFF], ["/notifications", "Notifications", [...STAFF, "volunteer"]]]],
+  ["Command Center", [["/dashboard", "Dashboard", [...STAFF, "volunteer"]], ["/reports", "Event Report", STAFF], ["/activity", "Activity & Audit", STAFF], ["/notifications", "Notifications", [...STAFF, "volunteer"]]]],
   ["Operations", [["/tasks", "Tasks", [...STAFF, "volunteer"]], ["/team", "Team", STAFF], ["/ops/applications", "Applications", STAFF], ["/timeline", "Timeline", STAFF], ["/approvals", "Approvals", [...LEAD, "dept_head"]], ["/risks", "Risks", STAFF], ["/control", "Event Control", [...STAFF, "volunteer"]]]],
   ["Academics", [["/delegates", "Delegates", STAFF], ["/groups", "Delegations", STAFF], ["/allocation", "Allocation", STAFF], ["/committees", "Committees", STAFF], ["/checkin", "Check-in", [...STAFF, "volunteer"]]]],
   ["Business", [["/sponsors", "Sponsors", STAFF], ["/finance", "Finance", [...LEAD, "dept_head"]], ["/procurement", "Vendors & Procurement", STAFF]]],
@@ -35,7 +35,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div key={sec}>
                 <div className="nav-sec">{sec}</div>
                 {vis.map(([to, label]) => (
-                  <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => (isActive ? "active" : "")} onClick={() => setOpen(false)}>{label}</NavLink>
+                  <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "active" : "")} onClick={() => setOpen(false)}>{label}</NavLink>
                 ))}
               </div>
             );
