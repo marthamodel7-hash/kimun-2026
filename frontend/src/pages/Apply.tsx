@@ -239,6 +239,10 @@ export function Apply() {
 
           {err && <div style={{ color: "#ff3366", fontSize: 13, marginTop: 12, padding: "8px 12px", borderRadius: 10, background: "rgba(255,51,102,0.06)", border: "1px solid rgba(255,51,102,0.15)" }}>{err}</div>}
 
+          <div style={{ fontSize: 11, color: "#5e6d82", marginTop: 10, lineHeight: 1.6 }}>
+            By submitting, you agree to KIMUN's <a href="/terms" target="_blank" rel="noopener" style={{ color: "#c4a55a", textDecoration: "underline" }}>Terms &amp; Conditions</a>, <a href="/privacy" target="_blank" rel="noopener" style={{ color: "#c4a55a", textDecoration: "underline" }}>Privacy Policy</a>, and <a href="/equity" target="_blank" rel="noopener" style={{ color: "#c4a55a", textDecoration: "underline" }}>Equity &amp; Inclusion Policy</a>.
+          </div>
+
           <button className="btn mt" style={{ width: "100%", padding: "12px 18px" }} disabled={!valid || loading} onClick={submit}>
             {loading ? "Submitting..." : "Submit Application →"}
           </button>

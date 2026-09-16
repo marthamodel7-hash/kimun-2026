@@ -36,6 +36,9 @@ import { DeptTasks } from "./pages/DeptTasks";
 import { DeptGuides } from "./pages/DeptGuides";
 import { TeamPortalLogin } from "./pages/TeamPortalLogin";
 import { TeamDepartmentPortal } from "./pages/TeamDepartmentPortal";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Equity from "./pages/Equity";
 
 function Guard({ children }: { children: ReactElement }) {
   if (!api.token) return <Navigate to="/login" />;
@@ -56,6 +59,9 @@ export function App() {
             <BrowserRouter>
               <Routes>
                 {/* Public routes (no auth) */}
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/equity" element={<Equity />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/register/success" element={<RegisterSuccess />} />
                 <Route path="/portal/login" element={<PortalLogin />} />

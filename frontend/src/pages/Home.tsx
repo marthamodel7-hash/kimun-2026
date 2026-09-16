@@ -625,6 +625,20 @@ export default function Home() {
       <footer style={{ position: "relative", zIndex: 2, padding: `${isMobile ? 20 : 32}px ${sectionPx}px`, marginTop: isMobile ? 20 : 40 }}>
         <div style={{ position: "absolute", top: 0, left: "15%", right: "15%", height: 1,
           background: "linear-gradient(90deg, transparent, rgba(196,165,90,0.15) 30%, rgba(196,165,90,0.08) 70%, transparent)" }} />
+        {/* Policy links */}
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: isMobile ? 12 : 24, marginBottom: isMobile ? 12 : 16, flexWrap: "wrap", textAlign: "center" }}>
+          {[
+            ["/terms", "Terms & Conditions"],
+            ["/privacy", "Privacy Policy"],
+            ["/equity", "Equity & Inclusion"],
+          ].map(([to, label]) => (
+            <a key={to} href={to} style={{ color: C.dim, fontSize: isMobile ? 9 : 10, letterSpacing: 1.5, textTransform: "uppercase" as const, textDecoration: "none", transition: "color 0.2s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = C.gold)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = C.dim)}>
+              {label}
+            </a>
+          ))}
+        </div>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: isMobile ? 8 : 20, fontSize: isMobile ? 8 : 9, color: C.dim, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase" as const, flexWrap: "wrap", textAlign: "center" }}>
           <span style={{ color: C.gold, fontWeight: 500 }}>KIMUN 2026</span>
           <span style={{ opacity: 0.2 }}>·</span>

@@ -195,6 +195,13 @@ export function Register() {
 
           {err && <div style={{ color: "#ff3366", fontSize: 13, marginTop: 10 }}>{err}</div>}
 
+          {/* Policy agreement */}
+          {step === 3 && (
+            <div style={{ fontSize: 11, color: "#5e6d82", marginTop: 10, lineHeight: 1.6 }}>
+              By submitting, you agree to KIMUN's <a href="/terms" target="_blank" rel="noopener" style={{ color: "#c4a55a", textDecoration: "underline" }}>Terms &amp; Conditions</a>, <a href="/privacy" target="_blank" rel="noopener" style={{ color: "#c4a55a", textDecoration: "underline" }}>Privacy Policy</a>, and <a href="/equity" target="_blank" rel="noopener" style={{ color: "#c4a55a", textDecoration: "underline" }}>Equity &amp; Inclusion Policy</a>.
+            </div>
+          )}
+
           {/* Navigation */}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
             {step > 0 ? <button className="btn ghost" onClick={() => setStep(step - 1)}>Back</button> : <div />}
