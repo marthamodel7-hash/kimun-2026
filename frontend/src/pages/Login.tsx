@@ -14,7 +14,6 @@ export default function Login() {
     <div className="login-wrap">
       <div className="glass login-card">
         <LogoHero size={100} subtitle="Operations Center" />
-        <p className="muted" style={{ marginTop: 16 }}>Internal team login. Demo: sg@kimun.demo / kimun123</p>
         <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input className="mt" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} />
         {err && <div className="mt" style={{ color: "#ff6b8a" }}>{err}</div>}
