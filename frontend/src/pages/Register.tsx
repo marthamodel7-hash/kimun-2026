@@ -21,7 +21,8 @@ export function Register() {
   const [members, setMembers] = useState<Member[]>([{ ...EMPTY_MEMBER }]);
   const [headIdx, setHeadIdx] = useState(0);
   const [committees, setCommittees] = useState<Committee[]>([]);
-  const [prefs, setPrefs] = useState("");
+  const [primaryCommittee, setPrimaryCommittee] = useState("");
+  const [secondaryCommittee, setSecondaryCommittee] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -53,7 +54,7 @@ export function Register() {
         emergency_contact_name: emergencyName,
         emergency_contact_phone: emergencyPhone,
         registration_type: regType,
-        committee_preferences: prefs,
+        committee_preferences: [primaryCommittee, secondaryCommittee].filter(Boolean).join(", "),
       };
       if (regType === "delegation") {
         body.delegation_members = members;
@@ -74,7 +75,7 @@ export function Register() {
 
   const valid1 = name.trim() && email.trim();
   const valid2 = regType === "individual" || (members.length >= 2 && members.every(m => m.name.trim()));
-  const valid3 = true;
+  const valid3 = primaryCommittee.trim() !== "";
   const valid = valid1 && valid2 && valid3;
 
   return (
@@ -149,19 +150,38 @@ export function Register() {
 
           {/* Step 3: Committee Preference */}
           {step === 2 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ fontSize: 13, color: "#6b7a90" }}>Select your top committee preferences (comma-separated):</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {committees.map(c => (
-                  <button key={c.id} className={`chip ${prefs.includes(c.name) ? "chip-on" : ""}`}
-                    onClick={() => {
-                      const list = prefs.split(",").map(s => s.trim()).filter(Boolean);
-                      if (list.includes(c.name)) setPrefs(list.filter(x => x !== c.name).join(", "));
-                      else setPrefs([...list, c.name].join(", "));
-                    }}>{c.name}</button>
-                ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 13, color: "#6b7a90" }}>Choose your committee preferences (max 2):</div>
+
+              {/* Primary committee */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#c4a55a", letterSpacing: 0.8, textTransform: "uppercase" as const, marginBottom: 6 }}>
+                  Primary Committee *
+                </label>
+                <select value={primaryCommittee} onChange={e => {
+                  setPrimaryCommittee(e.target.value);
+                  if (e.target.value === secondaryCommittee) setSecondaryCommittee("");
+                }}>
+                  <option value="">Select a committee...</option>
+                  {committees.map(c => (
+                    <option key={c.id} value={c.name} disabled={c.name === secondaryCommittee}>{c.name} ({c.type})</option>
+                  ))}
+                </select>
               </div>
-              <input placeholder="Or type preferences: UNGA, UNSC, WHO" value={prefs} onChange={e => setPrefs(e.target.value)} />
+
+              {/* Secondary committee */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#8a8070", letterSpacing: 0.8, textTransform: "uppercase" as const, marginBottom: 6 }}>
+                  Secondary Committee (optional)
+                </label>
+                <select value={secondaryCommittee} onChange={e => setSecondaryCommittee(e.target.value)}>
+                  <option value="">Select a committee...</option>
+                  {committees.map(c => (
+                    <option key={c.id} value={c.name} disabled={c.name === primaryCommittee}>{c.name} ({c.type})</option>
+                  ))}
+                </select>
+              </div>
+
               <div style={{ fontSize: 12, color: "#6b7a90" }}>Committee allotment happens after registration + payment confirmation.</div>
             </div>
           )}
@@ -177,7 +197,8 @@ export function Register() {
                 <span style={{ color: "#6b7a90" }}>Experience</span><span>{experience.replace("_", " ")}</span>
                 <span style={{ color: "#6b7a90" }}>Type</span><span>{regType === "individual" ? "Individual" : `Delegation (${members.length})`}</span>
                 <span style={{ color: "#6b7a90" }}>Fee</span><span style={{ color: "#00d4ff" }}>Rs. {regType === "individual" ? "8,000" : "45,000"}</span>
-                <span style={{ color: "#6b7a90" }}>Preferences</span><span>{prefs || "—"}</span>
+                <span style={{ color: "#6b7a90" }}>Primary Committee</span><span>{primaryCommittee || "—"}</span>
+                <span style={{ color: "#6b7a90" }}>Secondary Committee</span><span>{secondaryCommittee || "—"}</span>
               </div>
               {regType === "delegation" && members.length > 0 && (
                 <div style={{ marginTop: 8 }}>
