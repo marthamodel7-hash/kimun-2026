@@ -1408,12 +1408,11 @@ async def public_apply(
             data = await photo.read()
             if len(data) <= 5 * 1024 * 1024:
                 from app.uploads import UPLOAD_DIR, _is_vercel
-                fname = f"applicant-{_secrets.token_hex(8)}{ext}"
                 if _is_vercel:
-                    import base64
-                    b64 = base64.b64encode(data).decode()
-                    photo_url = f"data:{photo.content_type or 'image/png'};base64,{b64}"
+                    # Vercel serverless has no persistent storage; skip photo storage
+                    photo_url = ""
                 else:
+                    fname = f"applicant-{_secrets.token_hex(8)}{ext}"
                     os.makedirs(UPLOAD_DIR, exist_ok=True)
                     with open(os.path.join(UPLOAD_DIR, fname), "wb") as out:
                         out.write(data)

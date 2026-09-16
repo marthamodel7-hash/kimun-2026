@@ -92,8 +92,8 @@ export function Apply() {
         method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS },
         body: fd,
       });
+      if (!r.ok) throw new Error((await r.text()).slice(0, 200));
       const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Application failed");
       window.location.href = "/";
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Application failed");
@@ -102,7 +102,7 @@ export function Apply() {
     }
   }
 
-  const valid = name.trim() && email.trim() && phone.trim() && city.trim() && experience.trim() && dept && photoFile;
+  const valid = name.trim() && email.trim() && phone.trim() && city.trim() && experience.trim() && dept;
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
