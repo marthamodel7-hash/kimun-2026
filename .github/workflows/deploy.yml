@@ -1,0 +1,44 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+
+env:
+  VERCEL_ORG_ID: team_dnUuQ0UteWEHbLv7t9vbQNMr
+  VERCEL_PROJECT_ID: prj_h1nMooquZ64y364rjfCmFaDnXPVA
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Production
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Print deployment URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
