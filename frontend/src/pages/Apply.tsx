@@ -23,9 +23,12 @@ export function Apply() {
     if (!file) return;
     setPhotoPreview(URL.createObjectURL(file));
     setUploading(true);
+    setErr("");
     try {
+      // Compress image client-side to stay under Vercel's 4.5MB body limit
+      const compressed = await compressImage(file, 800, 0.7);
       const fd = new FormData();
-      fd.append("f", file);
+      fd.append("f", compressed, "photo.jpg");
       const r = await fetch("/api/public/apply/upload", { method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS }, body: fd });
       if (!r.ok) throw new Error((await r.text()).slice(0, 200));
       const data = await r.json();
@@ -36,6 +39,25 @@ export function Apply() {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function compressImage(file: File, maxDim: number, quality: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * ratio); h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Compression failed")), "image/jpeg", quality);
+      };
+      img.onerror = () => reject(new Error("Invalid image"));
+      img.src = URL.createObjectURL(file);
+    });
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {

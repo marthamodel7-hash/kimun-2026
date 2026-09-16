@@ -19,8 +19,9 @@ export function RegisterSuccess() {
     if (!file) return;
     setUploading(true); setErr("");
     try {
+      const compressed = await compressImage(file, 800, 0.7);
       const fd = new FormData();
-      fd.append("f", file);
+      fd.append("f", compressed, "screenshot.jpg");
       const r = await fetch("/api/public/upload", { method: "POST", headers: { "x-vercel-protection-bypass": VERCEL_BYPASS }, body: fd });
       if (!r.ok) throw new Error((await r.text()).slice(0, 200));
       const data = await r.json();
@@ -32,6 +33,25 @@ export function RegisterSuccess() {
     }
   }
 
+  async function compressImage(file: File, maxDim: number, quality: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * ratio); h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Compression failed")), "image/jpeg", quality);
+      };
+      img.onerror = () => reject(new Error("Invalid image"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function submitPayment() {
     setErr("");
     try {
@@ -39,8 +59,8 @@ export function RegisterSuccess() {
         method: "POST", headers: { "Content-Type": "application/json", "x-vercel-protection-bypass": VERCEL_BYPASS },
         body: JSON.stringify({ reference: ref, payment_reference: txnRef, screenshot_url: screenshot }),
       });
+      if (!r.ok) throw new Error((await r.text()).slice(0, 200));
       const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Submission failed");
       setSubmitted(true);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Submission failed");
