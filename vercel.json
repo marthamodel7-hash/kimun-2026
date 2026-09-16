@@ -1,4 +1,11 @@
 {
   "installCommand": "echo skip",
-  "buildCommand": "echo skip"
+  "buildCommand": "echo skip",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/((?!assets/|.*\\..*).*)",
+      "destination": "/api/index.py"
+    }
+  ]
 }
