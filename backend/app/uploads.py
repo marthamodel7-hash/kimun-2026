@@ -16,6 +16,9 @@ router = APIRouter()
 # Check if we're on Vercel (no persistent filesystem)
 _is_vercel = os.getenv("VERCEL", "") == "1"
 
+# Module-level constant so api.py can do: from app.uploads import UPLOAD_DIR
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
+
 
 @router.post("/uploads")
 async def upload(f: UploadFile = File(...), u=Depends(current_user)):
@@ -38,7 +41,6 @@ async def upload(f: UploadFile = File(...), u=Depends(current_user)):
         }
     else:
         # Local dev: save to disk
-        UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         name = f"{uuid.uuid4().hex}{ext}"
         with open(os.path.join(UPLOAD_DIR, name), "wb") as out:
@@ -49,6 +51,5 @@ async def upload(f: UploadFile = File(...), u=Depends(current_user)):
 def mount_uploads(app):
     if not _is_vercel:
         from fastapi.staticfiles import StaticFiles
-        UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")

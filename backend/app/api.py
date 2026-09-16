@@ -1345,11 +1345,19 @@ async def public_upload(f: UploadFile = File(...)):
     data = await f.read()
     if len(data) > 10 * 1024 * 1024:
         raise HTTPException(400, "File over 10MB limit")
-    from app.uploads import UPLOAD_DIR
-    name = f"payment-{_secrets.token_hex(8)}{ext}"
-    with open(os.path.join(UPLOAD_DIR, name), "wb") as out:
-        out.write(data)
-    return {"url": f"/uploads/{name}", "filename": f.filename, "bytes": len(data)}
+    from app.uploads import UPLOAD_DIR, _is_vercel
+    name = f"payment-{_sec.token_hex(8)}{ext}"
+    if _is_vercel:
+        # On Vercel serverless: store as base64 data URL
+        import base64
+        b64 = base64.b64encode(data).decode()
+        mime = f.content_type or "image/png"
+        return {"url": f"data:{mime};base64,{b64}", "filename": f.filename, "bytes": len(data), "storage": "inline"}
+    else:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        with open(os.path.join(UPLOAD_DIR, name), "wb") as out:
+            out.write(data)
+        return {"url": f"/uploads/{name}", "filename": f.filename, "bytes": len(data)}
 
 
 # =====================================================================
@@ -1532,18 +1540,8 @@ def _current_volunteer(cred: HTTPAuthorizationCredentials | None = Depends(_port
 
 
 @router.get("/apply/portal/profile")
-def vol_profile(u=Depends(_current_volunteer)):
-    dept = None
-    if u.department_id:
-        d = __import__("app.models", fromlist=["Department"])
-        dept_obj = None
-        # avoid circular — use direct query
-        pass
-    # simple approach
-    from app.db import SessionLocal
-    db = SessionLocal()
+def vol_profile(u=Depends(_current_volunteer), db: Session = Depends(get_db)):
     dept_obj = db.get(models.Department, u.department_id) if u.department_id else None
-    db.close()
     return {"id": u.id, "name": u.name, "email": u.email, "phone": u.phone,
             "reference": u.reference_number, "department_id": u.department_id,
             "department_name": dept_obj.name if dept_obj else "", "role": u.role,
@@ -1675,12 +1673,8 @@ def team_portal_login(body: TeamLoginIn, db: Session = Depends(get_db)):
 
 # --- team member profile ---
 @router.get("/team/profile")
-def team_profile(u=Depends(_current_team_member)):
-    dept = None
-    from app.db import SessionLocal
-    db = SessionLocal()
+def team_profile(u=Depends(_current_team_member), db: Session = Depends(get_db)):
     dept = db.get(models.Department, u.department_id) if u.department_id else None
-    db.close()
     return {
         "id": u.id, "name": u.name, "email": u.email, "phone": u.phone,
         "reference": u.reference_number, "department_id": u.department_id,
@@ -1737,10 +1731,7 @@ def team_dashboard(u=Depends(_current_team_member), db: Session = Depends(get_db
         models.User.department_id == dept_id,
         models.User.status == "active"
     ).count()
-    from app.db import SessionLocal
-    db2 = SessionLocal()
-    dept = db2.get(models.Department, dept_id)
-    db2.close()
+    dept = db.get(models.Department, dept_id)
     return {
         "department_code": dept.code if dept else "",
         "department_name": dept.name if dept else "",
@@ -1772,8 +1763,8 @@ class IncidentIn(BaseModel):
 @router.post("/team/sec/incidents")
 def sec_create_incident(body: IncidentIn, u=Depends(require_team_dept_edit("SEC")), db: Session = Depends(get_db)):
     inc = models.Incident(title=body.title, severity=body.severity,
-                          location=body.location, reported_by=u.name,
-                          status="open")
+                          location=body.location, description=body.description,
+                          reported_by=u.name, status="open")
     db.add(inc); db.commit(); db.refresh(inc)
     emit(db, u.email, "created", "incident", inc.id, f"Incident: {inc.title}")
     return {"id": inc.id, "status": inc.status}
@@ -1786,13 +1777,6 @@ def sec_schedule(u=Depends(require_team_dept("SEC")), db: Session = Depends(get_
     ).order_by(models.Shift.shift_date.asc()).limit(50).all()
     return [{"id": r.id, "date": str(r.shift_date), "start": r.start_time, "end": r.end_time,
              "zone": r.zone, "role": r.role, "status": r.status, "notes": r.notes} for r in rows]
-
-
-@router.get("/team/sec/zones")
-def sec_zones(u=Depends(require_team_dept("SEC")), db: Session = Depends(get_db)):
-    rows = db.query(models.VenueCheck).all()
-    return [{"id": r.id, "area": r.area, "item": r.item, "status": r.status,
-             "owner": r.owner, "notes": r.notes} for r in rows]
 
 
 # ─── PUBLIC RELATIONS (PR) ──────────────────────────────────────────
@@ -1846,14 +1830,7 @@ def med_schedule(u=Depends(require_team_dept("MED")), db: Session = Depends(get_
         models.Shift.role.ilike("%photo%") | models.Shift.role.ilike("%video%") | models.Shift.zone.ilike("%media%")
     ).order_by(models.Shift.shift_date.asc()).limit(50).all()
     return [{"id": r.id, "date": str(r.shift_date), "start": r.start_time, "end": r.end_time,
-             "zone": r.zone, "role": r.role, "status": r.status} for r in rows]
-
-
-@router.get("/team/med/archive")
-def med_archive(u=Depends(require_team_dept("MED")), db: Session = Depends(get_db)):
-    rows = db.query(models.Asset).order_by(models.Asset.id.desc()).limit(200).all()
-    return [{"id": r.id, "name": r.name, "kind": r.kind, "campaign": r.campaign,
-             "version": r.version, "approval": r.approval} for r in rows]
+              "zone": r.zone, "role": r.role, "status": r.status} for r in rows]
 
 
 # ─── MARKETING (MKT) ────────────────────────────────────────────────
@@ -1986,31 +1963,6 @@ def out_ambassadors(u=Depends(require_team_dept("OUT")), db: Session = Depends(g
 
 
 # ─── TECHNICAL ASSISTANCE (TECH) ────────────────────────────────────
-
-@router.get("/team/tech/tickets")
-def tech_tickets(u=Depends(require_team_dept("TECH")), db: Session = Depends(get_db)):
-    rows = db.query(models.Task).filter(
-        models.Task.department_id == u.department_id,
-        models.Task.status.notin_(["completed", "cancelled"])
-    ).order_by(models.Task.due_date.asc()).limit(100).all()
-    return [{"id": r.id, "title": r.title, "priority": r.priority, "status": r.status,
-             "description": r.description, "due_date": str(r.due_date) if r.due_date else None} for r in rows]
-
-
-class TicketIn(BaseModel):
-    title: str
-    description: str = ""
-    priority: str = "medium"
-
-
-@router.post("/team/tech/tickets")
-def tech_create_ticket(body: TicketIn, u=Depends(require_team_dept_edit("TECH")), db: Session = Depends(get_db)):
-    t = models.Task(title=body.title, description=body.description,
-                    priority=body.priority, status="todo",
-                    department_id=u.department_id, owner_id=u.id)
-    db.add(t); db.commit(); db.refresh(t)
-    emit(db, u.email, "created", "task", t.id, f"Ticket: {t.title}")
-    return {"id": t.id}
 
 
 @router.get("/team/tech/equipment")

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from app.core_config import settings
 from app.models import Base
@@ -27,13 +27,63 @@ def init_db():
     ensure_schema()
 
 
-def ensure_schema():
-    """Idempotent lightweight migration for SQLite dev DBs (Alembic owns Postgres)."""
-    if not settings.DATABASE_URL.startswith("sqlite"):
-        return
-    from sqlalchemy import inspect, text
+def _add_missing_columns(table_name: str, sa_table):
+    """Generic: add any columns defined in the model but missing from the DB table."""
     insp = inspect(engine)
+    try:
+        existing_cols = {c["name"] for c in insp.get_columns(table_name)}
+    except Exception:
+        return  # table doesn't exist yet; create_all handles it
+    for col in sa_table.columns:
+        if col.name not in existing_cols:
+            col_type = col.type.compile(engine.dialect)
+            nullable = "NULL" if col.nullable else "NOT NULL DEFAULT ''"
+            if col.server_default is not None:
+                # Table already has a server default in the model; skip manual default
+                ddl = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}"
+            elif col.default and hasattr(col.default, 'arg'):
+                default_val = col.default.arg
+                if isinstance(default_val, bool):
+                    pg_default = "TRUE" if default_val else "FALSE"
+                elif isinstance(default_val, (int, float)):
+                    pg_default = str(default_val)
+                elif isinstance(default_val, str):
+                    pg_default = f"'{default_val}'"
+                else:
+                    pg_default = "''"
+                if col.nullable:
+                    ddl = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} DEFAULT {pg_default} NULL"
+                else:
+                    ddl = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} DEFAULT {pg_default}"
+            else:
+                if col.nullable:
+                    ddl = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} NULL"
+                else:
+                    ddl = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} DEFAULT ''"
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(ddl))
+            except Exception:
+                pass  # column already exists or other transient error
+
+
+def ensure_schema():
+    """Idempotent lightweight migration — works for both SQLite and PostgreSQL."""
+    from sqlalchemy import inspect as _insp
+    insp = _insp(engine)
     tables = set(insp.get_table_names())
+
+    # --- Create any missing tables ---
+    Base.metadata.create_all(bind=engine)
+
+    # --- Add missing columns to existing tables ---
+    for table_name, sa_table in Base.metadata.tables.items():
+        if table_name in tables:
+            _add_missing_columns(table_name, sa_table)
+
+    # --- SQLite-specific: re-check and fix columns with raw ALTER TABLE ---
+    if not is_sqlite:
+        return
     if "tasks" in tables:
         cols = {c["name"] for c in insp.get_columns("tasks")}
         if "recurrence" not in cols:
@@ -53,7 +103,6 @@ def ensure_schema():
         if "capacity" not in cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE committees ADD COLUMN capacity INTEGER DEFAULT 40"))
-    # --- public registration portal columns ---
     if "delegates" in tables:
         cols = {c["name"] for c in insp.get_columns("delegates")}
         with engine.begin() as conn:
@@ -76,13 +125,11 @@ def ensure_schema():
                 if col not in cols:
                     clause = f"ALTER TABLE delegates ADD COLUMN {col} {typ} DEFAULT {default}" if default else f"ALTER TABLE delegates ADD COLUMN {col} {typ}"
                     conn.execute(text(clause))
-    # --- volunteer recruitment columns ---
     if "users" in tables:
         cols = {c["name"] for c in insp.get_columns("users")}
         if "reference_number" not in cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN reference_number VARCHAR(60) DEFAULT ''"))
-    # --- incident description column ---
     if "incidents" in tables:
         cols = {c["name"] for c in insp.get_columns("incidents")}
         if "description" not in cols:
@@ -91,7 +138,6 @@ def ensure_schema():
         if "created_at" not in cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE incidents ADD COLUMN created_at DATETIME"))
-    # --- department code column ---
     if "departments" in tables:
         cols = {c["name"] for c in insp.get_columns("departments")}
         if "code" not in cols:
