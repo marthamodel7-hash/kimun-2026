@@ -66,7 +66,7 @@ export function Apply() {
     }
   }
 
-  const valid = name.trim() && email.trim() && dept;
+  const valid = name.trim() && email.trim() && phone.trim() && city.trim() && experience.trim() && dept && photoUrl;
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
@@ -83,7 +83,7 @@ export function Apply() {
 
             {/* ── Phone ── */}
             <div>
-              <label style={labelStyle}>Phone Number</label>
+              <label style={labelStyle}>Phone Number *</label>
               <input placeholder="+92 3XX XXXXXXX" value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
 
@@ -95,13 +95,13 @@ export function Apply() {
 
             {/* ── City ── */}
             <div>
-              <label style={labelStyle}>Residence / City</label>
+              <label style={labelStyle}>Residence / City *</label>
               <input placeholder="Karachi, Lahore, Islamabad..." value={city} onChange={e => setCity(e.target.value)} />
             </div>
 
             {/* ── Experience ── */}
             <div>
-              <label style={labelStyle}>MUN / Organizational Experience</label>
+              <label style={labelStyle}>MUN / Organizational Experience *</label>
               <textarea placeholder="Tell us about your experience..." value={experience} onChange={e => setExperience(e.target.value)}
                 style={{ minHeight: 80, resize: "vertical" }} />
             </div>
@@ -142,7 +142,7 @@ export function Apply() {
 
             {/* ── Photo Upload ── */}
             <div>
-              <label style={labelStyle}>Picture</label>
+              <label style={labelStyle}>Picture *</label>
               <div
                 onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
