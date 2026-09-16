@@ -478,7 +478,7 @@ export default function Home() {
 
             <p style={{ fontSize: isMobile ? 14 : 15, lineHeight: 1.65, color: C.muted, maxWidth: isMobile ? "100%" : 430, marginBottom: isMobile ? 24 : 32, fontWeight: 400 }}>
               The premier Model United Nations conference — where future leaders
-              forge diplomatic solutions to the world's most pressing challenges.
+              build diplomatic solutions to the world's most pressing challenges.
             </p>
 
             {/* Hero CTA */}
