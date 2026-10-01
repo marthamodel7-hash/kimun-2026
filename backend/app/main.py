@@ -30,9 +30,38 @@ def _limited(ip: str, path: str) -> bool:
     return False
 
 
+def _seed_if_empty() -> None:
+    """Bootstrap an empty database the same way start-backend.bat does
+    ("if not exist kimun.db python -m app.seed").
+
+    Production starts against a fresh Postgres database, so nothing had ever
+    seeded it and /api/auth/login answered 401 for every documented demo
+    account - the admin console was unusable on the live URL. seed() returns
+    early once sg@kimun.demo exists and only wipes on an explicit --wipe (which
+    a server never passes), so this is safe to run on every cold start. Any
+    failure is logged rather than raised: a seeding problem must not stop the
+    app from serving.
+    """
+    try:
+        from app.db import SessionLocal
+        from app import models
+
+        db = SessionLocal()
+        try:
+            if db.query(models.User).count():
+                return
+        finally:
+            db.close()
+        from app.seed import seed
+        seed()
+    except Exception as exc:
+        print(f"[seed] skipped: {exc}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    _seed_if_empty()
     yield
 
 
