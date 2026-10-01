@@ -23,6 +23,14 @@ const C = {
   white:  "#f0f4f8",
 };
 
+/* Display face — CONFERENCE-FACTS.md §Confirmed: primary display typeface = Cinzel (fallback OVO).
+   Body/UI stays Inter. Cormorant Garamond is kept as the serif fallback in the stack. */
+const DISPLAY = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
+
+/* Hairline tokens — shared so every rule on the page is the same weight. */
+const HAIR = "rgba(196,165,90,0.14)";
+const HAIR_FAINT = "rgba(196,165,90,0.07)";
+
 /* ── Media query hook ── */
 function useMQ() {
   const [bp, setBp] = useState<"sm" | "md" | "lg">("lg");
@@ -40,7 +48,14 @@ function useMQ() {
   return bp;
 }
 
-const NAV = ["Home", "About", "Conference", "Committees", "Our Team", "Contact"];
+/* Only real in-page anchors are listed. The previous nav pointed Conference /
+   Committees / Our Team / Contact at anchors that never existed, so those links
+   silently did nothing. */
+const NAV: { label: string; href: string }[] = [
+  { label: "Home",    href: "#top" },
+  { label: "About",   href: "#about" },
+  { label: "Mission", href: "#mission" },
+];
 
 const CARDS = [
   { to: "/register",     icon: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
@@ -69,6 +84,27 @@ const globalCSS = `
 @keyframes goldShimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
+}
+
+/* Anchor targets must clear the fixed header. */
+section[id], [id="top"] { scroll-margin-top: 88px; }
+
+/* Keyboard focus is visible on the dark ground. */
+a:focus-visible, button:focus-visible {
+  outline: 1px solid rgba(196,165,90,0.7);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Reduced motion: settle CSS-driven motion (the gold shimmer, hover and
+   reveal transitions) to rest. The curtain and parallax are framer-driven. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
 }
 
 /* Hamburger menu open state */
@@ -184,13 +220,17 @@ function GlassCard({ to, icon, label, desc }: typeof CARDS[number]) {
   );
 }
 
-/* ── Scroll-reveal wrapper ── */
-function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+/* ── Scroll-reveal wrapper.
+   `fill` makes the wrapper and its motion node 100% tall so a card inside a
+   stretched grid row can centre its own content. ── */
+function Reveal({ children, delay = 0, fill = false }: { children: React.ReactNode; delay?: number; fill?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
+  const h = fill ? "100%" : undefined;
   return (
-    <div ref={ref}>
+    <div ref={ref} style={{ height: h }}>
       <motion.div
+        style={{ height: h }}
         initial={{ opacity: 0, y: 24 }}
         animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay }}
@@ -228,11 +268,49 @@ function SectionDivider({ px }: { px: number }) {
   );
 }
 
+/* ── Corner ticks — L-shaped hairline brackets that bound a field ── */
+function CornerTicks({ arm = 20, inset = 0, color = "rgba(196,165,90,0.4)" }: { arm?: number; inset?: number; color?: string }) {
+  const b = `1px solid ${color}`;
+  const base: React.CSSProperties = { position: "absolute", width: arm, height: arm, pointerEvents: "none" };
+  return (
+    <>
+      <div style={{ ...base, top: inset, left: inset, borderTop: b, borderLeft: b }} />
+      <div style={{ ...base, top: inset, right: inset, borderTop: b, borderRight: b }} />
+      <div style={{ ...base, bottom: inset, left: inset, borderBottom: b, borderLeft: b }} />
+      <div style={{ ...base, bottom: inset, right: inset, borderBottom: b, borderRight: b }} />
+    </>
+  );
+}
+
+/* ── Tick rule — 1px strokes at a measured interval, alternating height.
+       `space-between` lets a fixed stroke count always span the full container
+       width, so the rule terminates flush with the row beneath it. ── */
+function TickRule({ count = 48, height = 14, color = "rgba(196,165,90,0.22)" }: { count?: number; height?: number; color?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", height, width: "100%", pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <span key={i} style={{ width: 1, height: i % 5 === 0 ? height : height * 0.45, background: color, flexShrink: 0 }} />
+      ))}
+    </div>
+  );
+}
+
+/* ── Vertical seam — the signature hairline that splits the hero unevenly ── */
+function Seam({ left }: { left: string }) {
+  return (
+    <div aria-hidden="true" style={{
+      position: "absolute", top: 72, bottom: 24, left, width: 1,
+      background: "linear-gradient(180deg, transparent 0%, rgba(196,165,90,0.16) 12%, rgba(196,165,90,0.10) 88%, transparent 100%)",
+      pointerEvents: "none",
+    }} />
+  );
+}
+
 /* ── Stat block ── */
 function StatBlock({ n, suffix, l, s, compact }: typeof STATS[number] & { compact?: boolean }) {
   return (
     <div style={{ padding: compact ? "14px 0" : "20px 0", borderBottom: "1px solid rgba(196,165,90,0.05)" }}>
-      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: compact ? 36 : 48, fontWeight: 300, color: C.text, lineHeight: 1, marginBottom: 4 }}>
+      <div style={{ fontFamily: DISPLAY, fontSize: compact ? 34 : 46, fontWeight: 500, color: C.text, lineHeight: 1, marginBottom: 6, letterSpacing: 1 }}>
         <AnimatedStat target={n} suffix={suffix} />
       </div>
       <div style={{ fontSize: 10, letterSpacing: 3.5, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, marginBottom: 3 }}>{l}</div>
@@ -249,24 +327,37 @@ function MissionCard({ title, desc, icon }: { title: string; desc: string; icon:
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        padding: "24px 20px",
+        height: "100%",
+        /* centred content: the grid stretches rows to equal height and top-aligned
+           copy left an uneven void at the bottom of every card */
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: "32px 24px",
         background: hover ? "rgba(196,165,90,0.04)" : "rgba(196,165,90,0.02)",
-        border: `1px solid ${hover ? "rgba(196,165,90,0.15)" : "rgba(196,165,90,0.05)"}`,
+        border: `1px solid ${hover ? "rgba(196,165,90,0.15)" : HAIR_FAINT}`,
         borderRadius: 18, textAlign: "center",
         transition: "all 0.4s ease",
         transform: hover ? "translateY(-4px)" : "translateY(0)",
         boxShadow: hover ? "0 12px 32px rgba(0,0,0,0.3), 0 0 20px rgba(196,165,90,0.04)" : "none",
+        position: "relative", overflow: "hidden",
       }}
     >
+      {/* measured top rule that brightens on hover */}
       <div style={{
-        width: 42, height: 42, margin: "0 auto 12px", borderRadius: "50%",
+        position: "absolute", top: 0, left: "22%", right: "22%", height: 1,
+        background: hover ? "rgba(196,165,90,0.5)" : "rgba(196,165,90,0.16)",
+        transition: "background 0.4s",
+      }} />
+      <div style={{
+        width: 44, height: 44, margin: "0 auto 14px", borderRadius: "50%",
         background: hover ? "rgba(196,165,90,0.12)" : "rgba(196,165,90,0.06)",
-        display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.4s",
+        border: `1px solid ${hover ? "rgba(196,165,90,0.22)" : "rgba(196,165,90,0.1)"}`,
+        display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.4s, border-color 0.4s",
+        flexShrink: 0,
       }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill={C.gold} opacity={hover ? 0.9 : 0.6} style={{ transition: "opacity 0.4s" }}><path d={icon} /></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill={C.gold} opacity={hover ? 0.95 : 0.65} style={{ transition: "opacity 0.4s" }}><path d={icon} /></svg>
       </div>
-      <div style={{ fontSize: 13, fontWeight: 500, color: hover ? C.goldLt : C.text, marginBottom: 5, transition: "color 0.3s" }}>{title}</div>
-      <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.6 }}>{desc}</div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 500, color: hover ? C.goldLt : C.text, marginBottom: 8, transition: "color 0.3s", letterSpacing: 0.4 }}>{title}</div>
+      <div style={{ fontSize: 12.5, color: C.dim, lineHeight: 1.65, maxWidth: 300 }}>{desc}</div>
     </div>
   );
 }
@@ -297,7 +388,7 @@ export default function Home() {
   const globeSize = isMobile ? 260 : isTablet ? 340 : 420;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "Inter, sans-serif", overflowX: "hidden" }}>
+    <div id="top" style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "Inter, sans-serif", overflowX: "hidden" }}>
 
       <EntranceCurtain />
       <FilmGrain />
@@ -330,18 +421,18 @@ export default function Home() {
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, zIndex: 101 }}>
           <img src="/kimun-logo.png" alt="KIMUN" style={{ height: isMobile ? 32 : 40, width: isMobile ? 32 : 40, borderRadius: 8, objectFit: "cover" }} />
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: isMobile ? 14 : 16, fontWeight: 600, color: C.gold, letterSpacing: 2.5 }}>KIMUN</div>
+          <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 14 : 16, fontWeight: 600, color: C.gold, letterSpacing: 2.5 }}>KIMUN</div>
         </div>
 
         {/* Desktop nav */}
         {!isMobile && (
-          <nav style={{ display: "flex", gap: isTablet ? 20 : 32, alignItems: "center" }}>
+          <nav style={{ display: "flex", gap: isTablet ? 24 : 36, alignItems: "center" }}>
             {NAV.map((item, i) => (
-              <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
+              <a key={item.label} href={item.href}
                 style={{ fontSize: 10, letterSpacing: isTablet ? 3 : 4, textTransform: "uppercase" as const, color: i === 0 ? C.text : C.dim, textDecoration: "none", fontWeight: i === 0 ? 500 : 400, transition: "color 0.3s" }}
                 onMouseEnter={e => { e.currentTarget.style.color = C.goldLt; }}
                 onMouseLeave={e => { if (i !== 0) e.currentTarget.style.color = C.dim; }}
-              >{item}</a>
+              >{item.label}</a>
             ))}
           </nav>
         )}
@@ -385,12 +476,12 @@ export default function Home() {
               display: "flex", flexDirection: "column", gap: 0,
             }}>
               {NAV.map((item, i) => (
-                <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
+                <a key={item.label} href={item.href}
                   onClick={() => { (document.getElementById("kimun-hamburger") as HTMLInputElement).checked = false; }}
                   style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase" as const, color: i === 0 ? C.text : C.dim, textDecoration: "none", fontWeight: i === 0 ? 500 : 400, padding: "12px 0", borderBottom: i < NAV.length - 1 ? "1px solid rgba(196,165,90,0.05)" : "none", transition: "color 0.3s" }}
                   onMouseEnter={e => { e.currentTarget.style.color = C.goldLt; }}
                   onMouseLeave={e => { if (i !== 0) e.currentTarget.style.color = C.dim; }}
-                >{item}</a>
+                >{item.label}</a>
               ))}
               <button onClick={() => { (document.getElementById("kimun-hamburger") as HTMLInputElement).checked = false; nav("/register"); }}
                 style={{
@@ -416,26 +507,30 @@ export default function Home() {
       {/* ═══ HERO ═══ */}
       <section style={{
         position: "relative", zIndex: 2,
+        /* min-height only: a hard 100vh clipped the card row on short laptop viewports. */
         minHeight: isMobile ? "auto" : "100vh",
-        height: isMobile ? "auto" : "100vh",
+        height: "auto",
         display: "flex", flexDirection: "column",
-        padding: `${isMobile ? 72 : 80}px ${px}px ${isMobile ? 24 : 32}px`,
+        padding: `${isMobile ? 72 : 88}px ${px}px ${isMobile ? 24 : 32}px`,
         gap: 0,
       }}>
+        {/* Signature vertical seam — splits the hero unevenly, desktop/tablet only */}
+        {!isMobile && <Seam left="44%" />}
+
         <div style={{
           flex: 1, display: "flex",
           flexDirection: isMobile ? "column" : "row",
           alignItems: isMobile ? "center" : "center",
           justifyContent: isMobile ? "center" : undefined,
           minHeight: isMobile ? "auto" : 0,
-          gap: isMobile ? 20 : 0,
+          gap: isMobile ? 24 : 0,
         }}>
 
-          {/* LEFT — Typography */}
+          {/* LEFT — Typography.
+              Outer node owns the scroll parallax + fade (MotionValues);
+              inner node owns the entrance. Splitting them stops the two
+              competing for the same `opacity` key. */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
             style={{
               flex: isMobile ? "none" : "0 0 44%",
               maxWidth: isMobile ? "100%" : 520,
@@ -445,6 +540,11 @@ export default function Home() {
               opacity: heroOpacity,
               textAlign: isMobile ? "center" : "left",
             }}
+          >
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             <div style={{ fontSize: isMobile ? 9 : 10, letterSpacing: isMobile ? 3 : 5, textTransform: "uppercase" as const, color: C.dim, fontWeight: 500, marginBottom: isMobile ? 12 : 20 }}>
               Karachi Indus Model United Nations
@@ -460,19 +560,20 @@ export default function Home() {
               </div>
               <div>
                 <div style={{
-                  fontFamily: "'Cormorant Garamond', serif", fontSize: titleSize, fontWeight: 300,
-                  lineHeight: 0.88, letterSpacing: -1,
+                  fontFamily: DISPLAY, fontSize: titleSize, fontWeight: 600,
+                  lineHeight: 0.92, letterSpacing: isMobile ? 0 : 2,
                   background: "linear-gradient(90deg, #c4a55a 0%, #d4bc7a 30%, #f0e8d8 50%, #d4bc7a 70%, #c4a55a 100%)",
                   backgroundSize: "200% 100%",
                   WebkitBackgroundClip: "text", backgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   animation: "goldShimmer 4s ease-in-out 1.5s 1",
                 }}>KIMUN</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: yearSize, fontWeight: 300, lineHeight: 0.92, color: C.gold }}>2026</div>
+                <div style={{ fontFamily: DISPLAY, fontSize: yearSize, fontWeight: 400, lineHeight: 1, letterSpacing: 4, color: C.gold }}>2026</div>
               </div>
             </div>
 
-            <div style={{ fontSize: isMobile ? 9 : 10, letterSpacing: isMobile ? 2.5 : 4, textTransform: "uppercase" as const, color: C.dim, fontWeight: 500, marginTop: isMobile ? 12 : 20, marginBottom: isMobile ? 16 : 28 }}>
+            {/* tracking tuned so the five values hold one line at the 44% column width */}
+            <div style={{ fontSize: isMobile ? 9 : 10, letterSpacing: isMobile ? 2.5 : 2, textTransform: "uppercase" as const, color: C.dim, fontWeight: 500, marginTop: isMobile ? 12 : 20, marginBottom: isMobile ? 16 : 28, whiteSpace: isMobile ? "normal" : "nowrap" }}>
               Knowledge · Integrity · Multilateralism · Unity · Negotiation
             </div>
 
@@ -510,8 +611,12 @@ export default function Home() {
               </button>
             </div>
           </motion.div>
+          </motion.div>
 
-          {/* RIGHT — UN Globe */}
+          {/* RIGHT — UN emblem, held inside a bounded field.
+              The emblem is deliberately the smaller, quieter element so the
+              KIMUN mark leads; the field's hairlines, corner ticks and
+              annotations carry the weight of that half of the hero. */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -521,13 +626,49 @@ export default function Home() {
               display: "flex", alignItems: "center", justifyContent: "center",
               height: isMobile ? "auto" : "65vh",
               minHeight: isMobile ? "auto" : 380,
-              maxHeight: isMobile ? "none" : 520,
+              maxHeight: isMobile ? "none" : 560,
               y: globeY,
             }}
           >
-            <div style={{ width: globeSize, height: globeSize }}><UNLogo3D /></div>
+            <div style={{ position: "relative", width: globeSize, height: globeSize }}>
+              {/* navy depth wash so the emblem sits in a field, not in a void */}
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "radial-gradient(circle at 50% 46%, rgba(10,18,32,0.85) 0%, rgba(6,11,28,0.35) 55%, rgba(2,3,5,0) 78%)",
+              }} />
+              {/* hairline frame + brighter corner brackets */}
+              <div style={{ position: "absolute", inset: 0, border: `1px solid ${HAIR_FAINT}` }} />
+              <CornerTicks arm={18} color="rgba(196,165,90,0.42)" />
+
+              {/* corner annotations — discovered, not read */}
+              {[
+                { t: "Fig. 01 · Global Field", pos: { top: 12, left: 26 }, c: C.gold },
+                { t: "MUN · Simulation",       pos: { top: 12, right: 26 }, c: C.dim },
+                { t: "24.86° N / 67.01° E",    pos: { bottom: 12, left: 26 }, c: C.dim },
+                { t: "Karachi · PK",           pos: { bottom: 12, right: 26 }, c: C.gold },
+              ].map(a => (
+                <div key={a.t} style={{
+                  position: "absolute", ...a.pos,
+                  fontSize: isMobile ? 7 : 8, letterSpacing: isMobile ? 1.4 : 2,
+                  textTransform: "uppercase" as const, color: a.c, fontWeight: 500,
+                  whiteSpace: "nowrap", pointerEvents: "none", fontFamily: "Inter, sans-serif",
+                }}>{a.t}</div>
+              ))}
+
+              {/* the emblem itself, inset so it never fills or breaks the frame */}
+              <div style={{ position: "absolute", inset: isMobile ? 34 : 44 }}>
+                <UNLogo3D />
+              </div>
+            </div>
           </motion.div>
         </div>
+
+        {/* Tick rule separating the hero from the action row */}
+        {!isMobile && (
+          <div style={{ width: "100%", margin: `${isTablet ? 14 : 20}px 0 ${isTablet ? 10 : 14}px`, opacity: 0.9 }}>
+            <TickRule count={isTablet ? 64 : 104} height={12} />
+          </div>
+        )}
 
         {/* Cards — responsive grid */}
         <motion.div style={{
@@ -561,9 +702,10 @@ export default function Home() {
               minHeight: isMobile ? 280 : 440, boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(2,3,5,0.2) 0%, rgba(2,3,5,0.7) 60%, rgba(2,3,5,0.95) 100%), linear-gradient(135deg, #020305 0%, #0a1220 50%, #0c1628 100%)" }} />
               <div style={{ position: "absolute", inset: 0, opacity: 0.02, backgroundImage: "linear-gradient(rgba(196,165,90,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(196,165,90,0.3) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
+              <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}><CornerTicks arm={22} inset={14} color="rgba(196,165,90,0.3)" /></div>
               <div style={{ position: "relative", zIndex: 1, padding: isMobile ? "32px 24px" : "48px 40px", display: "flex", flexDirection: "column", justifyContent: "flex-end", minHeight: isMobile ? 280 : 440 }}>
                 <div style={{ fontSize: 10, letterSpacing: 4, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, marginBottom: 12 }}>About KIMUN</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: isMobile ? 26 : 34, fontWeight: 400, color: C.text, lineHeight: 1.15, marginBottom: 16 }}>More Than<br />Just a Conference</div>
+                <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 24 : 32, fontWeight: 500, color: C.text, lineHeight: 1.25, marginBottom: 16 }}>More Than<br />Just a Conference</div>
                 <p style={{ fontSize: isMobile ? 13 : 14, lineHeight: 1.7, color: C.muted, maxWidth: 380, marginBottom: 24 }}>KIMUN is a platform for young minds to debate, collaborate and create real change. It's not just about diplomacy — it's about you.</p>
                 <button onClick={() => nav("/register")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontSize: 11, letterSpacing: 2, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, padding: 0, transition: "gap 0.3s" }}
                   onMouseEnter={e => { e.currentTarget.style.gap = "12px"; }}
@@ -591,12 +733,18 @@ export default function Home() {
       <SectionDivider px={sectionPx} />
 
       {/* ═══ MISSION ═══ */}
-      <section style={{ position: "relative", zIndex: 2, padding: `${isMobile ? 36 : 60}px ${sectionPx}px ${isMobile ? 48 : 80}px`, maxWidth: 1200, margin: "0 auto" }}>
+      <section id="mission" style={{ position: "relative", zIndex: 2, padding: `${isMobile ? 36 : 60}px ${sectionPx}px ${isMobile ? 48 : 80}px`, maxWidth: 1200, margin: "0 auto" }}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 44 }}>
-            <div style={{ fontSize: 10, letterSpacing: 5, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, marginBottom: 12 }}>Our Mission</div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: isMobile ? 24 : 34, fontWeight: 400, color: C.text, lineHeight: 1.2 }}>
+            <div style={{ fontSize: 10, letterSpacing: 5, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, marginBottom: 14 }}>Our Mission</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 22 : 31, fontWeight: 500, color: C.text, lineHeight: 1.35, letterSpacing: 0.5 }}>
               Fostering Dialogue. Building Bridges.<br />Shaping Tomorrow.
+            </div>
+            {/* flanking hairlines so the heading sits on a rule rather than floating */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: isMobile ? 18 : 26 }}>
+              <div style={{ width: isMobile ? 40 : 90, height: 1, background: `linear-gradient(90deg, transparent, ${HAIR})` }} />
+              <div style={{ width: 4, height: 4, background: C.gold, transform: "rotate(45deg)", opacity: 0.7 }} />
+              <div style={{ width: isMobile ? 40 : 90, height: 1, background: `linear-gradient(90deg, ${HAIR}, transparent)` }} />
             </div>
           </div>
         </Reveal>
@@ -614,7 +762,7 @@ export default function Home() {
             { title: "Youth Empowerment", desc: "Providing a platform for young minds to voice ideas, challenge perspectives, and lead change.",
               icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
           ].map((item, i) => (
-            <Reveal key={item.title} delay={i * 0.1}>
+            <Reveal key={item.title} delay={i * 0.1} fill>
               <MissionCard {...item} />
             </Reveal>
           ))}
@@ -638,6 +786,16 @@ export default function Home() {
               {label}
             </a>
           ))}
+        </div>
+        {/* UN non-affiliation — required whenever the emblem appears on a surface */}
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 12 : 16 }}>
+          <span style={{
+            fontSize: isMobile ? 8 : 9, letterSpacing: isMobile ? 1 : 1.6,
+            color: "rgba(138,128,112,0.75)", lineHeight: 1.7, display: "inline-block",
+            maxWidth: 720, textTransform: "none" as const, fontWeight: 400,
+          }}>
+            Model United Nations — an educational simulation. Not affiliated with, endorsed by, or connected to the United Nations.
+          </span>
         </div>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: isMobile ? 8 : 20, fontSize: isMobile ? 8 : 9, color: C.dim, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase" as const, flexWrap: "wrap", textAlign: "center" }}>
           <span style={{ color: C.gold, fontWeight: 500 }}>KIMUN 2026</span>
