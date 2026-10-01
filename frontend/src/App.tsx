@@ -40,18 +40,9 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Equity from "./pages/Equity";
 import ComingSoon from "./pages/ComingSoon";
-
-/* ────────────────────────────────────────────────────────────────
-   PUBLIC FEATURE GATE
-
-   The site is live, but every public feature is CLOSED except the
-   Team Member Application (/apply). Delegate registration and the
-   delegate portal stay shut until the date-drop.
-
-   Flip `delegateRegistrationOpen` to true on launch day — every
-   gated route re-opens at once. Nothing else needs editing.
-   ──────────────────────────────────────────────────────────────── */
-const delegateRegistrationOpen = false;
+// The public feature gate lives in siteConfig.ts so the homepage CTAs and the
+// route wrappers below can never disagree about what is open.
+import { delegateRegistrationOpen } from "./siteConfig";
 
 function Gated({ open, children }: { open: boolean; children: ReactElement }) {
   if (open) return <>{children}</>;

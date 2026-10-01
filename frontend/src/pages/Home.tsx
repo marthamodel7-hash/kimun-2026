@@ -8,6 +8,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import UNLogo3D from "../components/home/UNLogo3D";
+import { registerCta } from "../siteConfig";
 
 /* ── Palette ── */
 const C = {
@@ -470,7 +471,7 @@ export default function Home() {
 
         {/* Desktop register button */}
         {!isMobile && (
-          <button onClick={() => nav("/register")} style={{
+          <button onClick={() => nav(registerCta.to)} style={{
             display: "flex", alignItems: "center", gap: 8, padding: "7px 18px",
             background: "rgba(196,165,90,0.08)", border: "1px solid rgba(196,165,90,0.15)",
             borderRadius: 99, cursor: "pointer", fontSize: 10, letterSpacing: 3,
@@ -479,7 +480,7 @@ export default function Home() {
             onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(196,165,90,0.3)"; e.currentTarget.style.background = "rgba(196,165,90,0.12)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(196,165,90,0.15)"; e.currentTarget.style.background = "rgba(196,165,90,0.08)"; }}
           >
-            Register
+            {registerCta.nav}
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
           </button>
         )}
@@ -514,13 +515,13 @@ export default function Home() {
                   onMouseLeave={e => { if (i !== 0) e.currentTarget.style.color = C.dim; }}
                 >{item.label}</a>
               ))}
-              <button onClick={() => { (document.getElementById("kimun-hamburger") as HTMLInputElement).checked = false; nav("/register"); }}
+              <button onClick={() => { (document.getElementById("kimun-hamburger") as HTMLInputElement).checked = false; nav(registerCta.to); }}
                 style={{
                   marginTop: 8, padding: "10px 0", background: "rgba(196,165,90,0.08)", border: "1px solid rgba(196,165,90,0.15)",
                   borderRadius: 12, cursor: "pointer", fontSize: 11, letterSpacing: 3,
                   textTransform: "uppercase" as const, color: C.goldLt, fontWeight: 500, transition: "all 0.3s", width: "100%",
                 }}>
-                Register Now
+                {registerCta.hero}
               </button>
               <button onClick={() => { (document.getElementById("kimun-hamburger") as HTMLInputElement).checked = false; nav("/team/login"); }}
                 style={{
@@ -615,7 +616,7 @@ export default function Home() {
 
             {/* Hero CTA */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: isMobile ? "center" : undefined, gap: 16, marginBottom: 12, flexWrap: isMobile ? "wrap" : undefined }}>
-              <button onClick={() => nav("/register")} style={{
+              <button onClick={() => nav(registerCta.to)} style={{
                 display: "inline-flex", alignItems: "center", gap: 10,
                 padding: isMobile ? "11px 28px" : "12px 32px",
                 background: "rgba(196,165,90,0.1)",
@@ -629,7 +630,7 @@ export default function Home() {
                 onMouseEnter={e => { e.currentTarget.style.background = "rgba(196,165,90,0.18)"; e.currentTarget.style.borderColor = "rgba(196,165,90,0.4)"; e.currentTarget.style.boxShadow = "0 0 30px rgba(196,165,90,0.1)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "rgba(196,165,90,0.1)"; e.currentTarget.style.borderColor = "rgba(196,165,90,0.25)"; e.currentTarget.style.boxShadow = "none"; }}
               >
-                Register Now
+                {registerCta.hero}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
               </button>
 
