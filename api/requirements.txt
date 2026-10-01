@@ -10,3 +10,8 @@ httpx>=0.27
 segno>=1.6
 openpyxl>=3.1
 psycopg2-binary>=2.9
+# Vercel's DATABASE_URL is postgresql+psycopg:// — SQLAlchemy resolves that to
+# the psycopg3 dialect, which needs the `psycopg` module (psycopg2 does NOT
+# satisfy it). Without this the function dies at app/db.py:8 on import and
+# every rewritten path returns 500.
+psycopg[binary]>=3.1
