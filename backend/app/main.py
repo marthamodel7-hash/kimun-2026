@@ -30,17 +30,24 @@ def _limited(ip: str, path: str) -> bool:
     return False
 
 
+# Startup diagnostics exposed by /api/health. The production database cannot be
+# inspected from a laptop, so "why can't I log in?" has to be answerable over
+# HTTP instead of from server logs (which do not surface stdout).
+_STARTUP: dict = {"users": None, "admin": False, "seed": "not-run"}
+
+
 def _seed_if_empty() -> None:
-    """Bootstrap an empty database the same way start-backend.bat does
+    """Guarantee a working admin login, mirroring start-backend.bat
     ("if not exist kimun.db python -m app.seed").
 
-    Production starts against a fresh Postgres database, so nothing had ever
-    seeded it and /api/auth/login answered 401 for every documented demo
-    account - the admin console was unusable on the live URL. seed() returns
-    early once sg@kimun.demo exists and only wipes on an explicit --wipe (which
-    a server never passes), so this is safe to run on every cold start. Any
-    failure is logged rather than raised: a seeding problem must not stop the
-    app from serving.
+    Guard on the admin account that login actually needs, not on "does the
+    users table have any rows": production may already hold real rows while
+    still having no account anyone can sign in with, and a coarse emptiness
+    check would silently skip seeding and leave /api/auth/login at 401.
+
+    seed() only wipes on an explicit --wipe (which a server never passes).
+    Any failure is recorded rather than raised so a seeding problem can never
+    stop the app serving - but it must remain visible via /api/health.
     """
     try:
         from app.db import SessionLocal
@@ -48,14 +55,19 @@ def _seed_if_empty() -> None:
 
         db = SessionLocal()
         try:
-            if db.query(models.User).count():
-                return
+            _STARTUP["users"] = db.query(models.User).count()
+            _STARTUP["admin"] = db.query(models.User).filter_by(email="sg@kimun.demo").count() > 0
         finally:
             db.close()
+        if _STARTUP["admin"]:
+            _STARTUP["seed"] = "already-present"
+            return
         from app.seed import seed
         seed()
+        _STARTUP["seed"] = "seeded"
     except Exception as exc:
-        print(f"[seed] skipped: {exc}")
+        _STARTUP["seed"] = f"error: {type(exc).__name__}: {exc}"[:300]
+        print(f"[seed] {type(exc).__name__}: {exc}")
 
 
 @asynccontextmanager
@@ -86,7 +98,7 @@ mount_uploads(app)
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "app": "kimun-2026"}
+    return {"ok": True, "app": "kimun-2026", "startup": _STARTUP}
 
 
 # ─── Serve frontend static files (Vercel deployment) ────────────────
