@@ -57,24 +57,42 @@ const NAV: { label: string; href: string }[] = [
   { label: "Mission", href: "#mission" },
 ];
 
-const CARDS = [
+/* Public feature gate: only the Team Member Application is open right now.
+   Cards marked `soon` route to the gate page (which tells the visitor what IS
+   open) rather than into a closed feature. Set `delegateRegistrationOpen` in
+   App.tsx to true on launch day and they open with it. */
+type Card = { to: string; icon: string; label: string; desc: string; soon?: boolean };
+
+const CARDS: Card[] = [
   { to: "/register",     icon: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
-    label: "Register as Delegate", desc: "Join as a delegate or delegation of up to six" },
+    label: "Register as Delegate", desc: "Opens with the date drop", soon: true },
   { to: "/apply",        icon: "M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 3a4 4 0 100 8 4 4 0 000-8zM20 8v6M23 11h-6",
-    label: "Apply as Volunteer", desc: "Join the operations committee" },
+    label: "Apply as Volunteer", desc: "Open now — applications are live" },
   { to: "/portal/login", icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10",
-    label: "Delegate Portal", desc: "Access your portal with reference number" },
+    label: "Delegate Portal", desc: "Opens when registration opens", soon: true },
   { to: "/team/login",   icon: "M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5zM20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M16 3.13a4 4 0 010 7.75M12 14v3",
     label: "Team Portal", desc: "Department operations — reference number access" },
   { to: "/login",        icon: "M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18",
     label: "Staff Login", desc: "Internal operations center access" },
 ];
 
-const STATS = [
-  { n: 500, suffix: "+", l: "Delegates", s: "From across the region and beyond" },
-  { n: 8,   suffix: "+", l: "Committees", s: "Tackling global challenges" },
-  { n: 3,   suffix: "",  l: "Days", s: "Of debate, diplomacy and impact" },
-  { n: 1,   suffix: "",  l: "Vision", s: "A more united tomorrow" },
+/* Only confirmed values may appear here.
+   ⛔ NOT ANNOUNCED: delegate/seat counts, committee counts, dates, venue, fees.
+   The old block shipped 500+ delegates / 8+ committees / 3 days — all invented.
+   Change the post, not the fact.
+
+   CONFLICT (flagged to Sir): CONFERENCE-FACTS.md still records "Registration:
+   OPEN — General Body" from Sep 30, but KIMUN-AGENT-PROMPT.md (Oct 1, newer and
+   locked) closes delegate registration and leaves only the Team Member
+   Application open. This block follows the newer gate, otherwise the page would
+   claim "registration open" 400px above a card that says "opens soon". */
+type Stat = { v: number | string; l: string; s: string };
+
+const STATS: Stat[] = [
+  { v: 2026,          l: "Edition",          s: "Karachi, Pakistan" },
+  { v: "OPEN",        l: "Team applications", s: "The team member form is live" },
+  { v: "COMING SOON", l: "Dates & venue",    s: "Announced in sequence" },
+  { v: 1,             l: "Vision",           s: "A more united tomorrow" },
 ];
 
 /* ────────────────────────────────────────────
@@ -162,7 +180,7 @@ function AnimatedStat({ target, suffix }: { target: number; suffix: string }) {
 }
 
 /* ── Glass card with hover arrow ── */
-function GlassCard({ to, icon, label, desc }: typeof CARDS[number]) {
+function GlassCard({ to, icon, label, desc, soon }: Card) {
   const nav = useNavigate();
   const ref = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState({ x: 50, y: 50 });
@@ -191,7 +209,7 @@ function GlassCard({ to, icon, label, desc }: typeof CARDS[number]) {
         backdropFilter: "blur(24px) saturate(140%)", WebkitBackdropFilter: "blur(24px) saturate(140%)",
         transition: "border-color 0.4s, transform 0.4s, box-shadow 0.5s",
         display: "flex", flexDirection: "column", gap: 14, minHeight: 170,
-        width: "100%",
+        width: "100%", height: "100%",
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.3)",
         borderColor: hover ? "rgba(196,165,90,0.3)" : "rgba(196,165,90,0.12)",
         transform: hover ? "translateY(-5px)" : "translateY(0)",
@@ -208,7 +226,17 @@ function GlassCard({ to, icon, label, desc }: typeof CARDS[number]) {
           <path d={icon} />
         </svg>
       </div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: 0.2, position: "relative" }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: 0.2, position: "relative",
+        display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {label}
+        {soon && (
+          <span style={{ fontSize: 8, letterSpacing: 1.5, textTransform: "uppercase" as const,
+            color: C.gold, border: "1px solid rgba(196,165,90,0.3)", borderRadius: 999,
+            padding: "3px 8px", fontWeight: 600, whiteSpace: "nowrap" }}>
+            Opens soon
+          </span>
+        )}
+      </div>
       <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, position: "relative" }}>{desc}</div>
       <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: hover ? 12 : 8, position: "relative", transition: "gap 0.3s" }}>
         <span style={{ fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600 }}>Explore</span>
@@ -307,11 +335,14 @@ function Seam({ left }: { left: string }) {
 }
 
 /* ── Stat block ── */
-function StatBlock({ n, suffix, l, s, compact }: typeof STATS[number] & { compact?: boolean }) {
+function StatBlock({ v, l, s, compact }: Stat & { compact?: boolean }) {
+  /* Numbers count up; words (OPEN / COMING SOON) are set static at a smaller
+     size so a long confirmed phrase still fits the column. */
+  const isNum = typeof v === "number";
   return (
     <div style={{ padding: compact ? "14px 0" : "20px 0", borderBottom: "1px solid rgba(196,165,90,0.05)" }}>
-      <div style={{ fontFamily: DISPLAY, fontSize: compact ? 34 : 46, fontWeight: 500, color: C.text, lineHeight: 1, marginBottom: 6, letterSpacing: 1 }}>
-        <AnimatedStat target={n} suffix={suffix} />
+      <div style={{ fontFamily: DISPLAY, fontSize: compact ? (isNum ? 34 : 24) : (isNum ? 46 : 30), fontWeight: 500, color: C.text, lineHeight: 1.08, marginBottom: 6, letterSpacing: isNum ? 1 : 0.5 }}>
+        {isNum ? <AnimatedStat target={v} suffix="" /> : v}
       </div>
       <div style={{ fontSize: 10, letterSpacing: 3.5, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, marginBottom: 3 }}>{l}</div>
       <div style={{ fontSize: compact ? 12 : 13, color: C.dim, lineHeight: 1.5 }}>{s}</div>
@@ -681,7 +712,8 @@ export default function Home() {
         }}>
           {CARDS.map((c, i) => (
             <motion.div key={c.to} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.0 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}>
+              transition={{ duration: 0.6, delay: 1.0 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              style={{ height: "100%" }}>
               <GlassCard {...c} />
             </motion.div>
           ))}
@@ -707,7 +739,7 @@ export default function Home() {
                 <div style={{ fontSize: 10, letterSpacing: 4, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, marginBottom: 12 }}>About KIMUN</div>
                 <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 24 : 32, fontWeight: 500, color: C.text, lineHeight: 1.25, marginBottom: 16 }}>More Than<br />Just a Conference</div>
                 <p style={{ fontSize: isMobile ? 13 : 14, lineHeight: 1.7, color: C.muted, maxWidth: 380, marginBottom: 24 }}>KIMUN is a platform for young minds to debate, collaborate and create real change. It's not just about diplomacy — it's about you.</p>
-                <button onClick={() => nav("/register")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontSize: 11, letterSpacing: 2, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, padding: 0, transition: "gap 0.3s" }}
+                <button onClick={() => document.getElementById("mission")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontSize: 11, letterSpacing: 2, textTransform: "uppercase" as const, color: C.gold, fontWeight: 600, padding: 0, transition: "gap 0.3s" }}
                   onMouseEnter={e => { e.currentTarget.style.gap = "12px"; }}
                   onMouseLeave={e => { e.currentTarget.style.gap = "8px"; }}
                 >
@@ -786,16 +818,6 @@ export default function Home() {
               {label}
             </a>
           ))}
-        </div>
-        {/* UN non-affiliation — required whenever the emblem appears on a surface */}
-        <div style={{ textAlign: "center", marginBottom: isMobile ? 12 : 16 }}>
-          <span style={{
-            fontSize: isMobile ? 8 : 9, letterSpacing: isMobile ? 1 : 1.6,
-            color: "rgba(138,128,112,0.75)", lineHeight: 1.7, display: "inline-block",
-            maxWidth: 720, textTransform: "none" as const, fontWeight: 400,
-          }}>
-            Model United Nations — an educational simulation. Not affiliated with, endorsed by, or connected to the United Nations.
-          </span>
         </div>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: isMobile ? 8 : 20, fontSize: isMobile ? 8 : 9, color: C.dim, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase" as const, flexWrap: "wrap", textAlign: "center" }}>
           <span style={{ color: C.gold, fontWeight: 500 }}>KIMUN 2026</span>

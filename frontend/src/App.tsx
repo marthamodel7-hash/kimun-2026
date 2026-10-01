@@ -39,6 +39,24 @@ import { TeamDepartmentPortal } from "./pages/TeamDepartmentPortal";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Equity from "./pages/Equity";
+import ComingSoon from "./pages/ComingSoon";
+
+/* ────────────────────────────────────────────────────────────────
+   PUBLIC FEATURE GATE
+
+   The site is live, but every public feature is CLOSED except the
+   Team Member Application (/apply). Delegate registration and the
+   delegate portal stay shut until the date-drop.
+
+   Flip `delegateRegistrationOpen` to true on launch day — every
+   gated route re-opens at once. Nothing else needs editing.
+   ──────────────────────────────────────────────────────────────── */
+const delegateRegistrationOpen = false;
+
+function Gated({ open, children }: { open: boolean; children: ReactElement }) {
+  if (open) return <>{children}</>;
+  return <ComingSoon />;
+}
 
 function Guard({ children }: { children: ReactElement }) {
   if (!api.token) return <Navigate to="/login" />;
@@ -61,9 +79,9 @@ export function App() {
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/equity" element={<Equity />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/register/success" element={<RegisterSuccess />} />
-                <Route path="/portal/login" element={<PortalLogin />} />
+                <Route path="/register" element={<Gated open={delegateRegistrationOpen}><Register /></Gated>} />
+                <Route path="/register/success" element={<Gated open={delegateRegistrationOpen}><RegisterSuccess /></Gated>} />
+                <Route path="/portal/login" element={<Gated open={delegateRegistrationOpen}><PortalLogin /></Gated>} />
                 <Route path="/apply" element={<Apply />} />
                 <Route path="/apply/success" element={<ApplySuccess />} />
                 <Route path="/apply/portal/login" element={<DeptPortalLogin />} />
@@ -75,8 +93,8 @@ export function App() {
                   <Route path=":section" element={<TeamDepartmentPortal />} />
                 </Route>
 
-                {/* Delegate portal (portal auth) */}
-                <Route path="/portal" element={<PortalGuard><PortalLayout /></PortalGuard>}>
+                {/* Delegate portal (portal auth) — closed with registration */}
+                <Route path="/portal" element={<Gated open={delegateRegistrationOpen}><PortalGuard><PortalLayout /></PortalGuard></Gated>}>
                   <Route index element={<PortalProfile />} />
                   <Route path="committees" element={<PortalCommittees />} />
                   <Route path="study-guides" element={<PortalStudyGuides />} />
@@ -118,6 +136,11 @@ export function App() {
                 <Route path="/notifications" element={<Guard><Notifications /></Guard>} />
                 <Route path="/settings" element={<Guard><Settings /></Guard>} />
                 <Route path="/ops/applications" element={<Guard><ApplicationsPanel /></Guard>} />
+
+                {/* Catch-all — without this, any unknown URL renders nothing
+                    (blank white page) because the SPA catch-all in main.py
+                    still serves index.html for it. */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </BrowserRouter>
           </DeptPortalProvider>

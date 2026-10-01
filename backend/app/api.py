@@ -1084,9 +1084,28 @@ def _gen_registration_token(delegate_id: int) -> str:
     return f"K26-{delegate_id:04d}-{_secrets.token_hex(4).upper()}"
 
 
+# ---------- public feature gate -------------------------------------------
+# Delegate registration is CLOSED to the public until the date-drop. Only the
+# Team Member Application (/api/public/apply*) stays open, plus staff login.
+# Flip this to True on launch day — the UI gate in frontend/src/App.tsx flips
+# with it.
+DELEGATE_REGISTRATION_OPEN = False
+
+
+def _require_registration_open() -> None:
+    """Server-side gate. Hiding the UI alone would leave these endpoints open."""
+    if not DELEGATE_REGISTRATION_OPEN:
+        raise HTTPException(
+            403,
+            "Delegate registration opens soon. Team member applications are open now.",
+        )
+# ---------------------------------------------------------------------------
+
+
 @router.get("/public/committees")
 def public_committees(db: Session = Depends(get_db)):
     """List committees for the registration preference dropdown (public)."""
+    _require_registration_open()
     return [{"id": c.id, "name": c.name, "type": c.type, "capacity": c.capacity}
             for c in db.query(models.Committee).order_by(models.Committee.name).all()]
 
@@ -1111,6 +1130,7 @@ class RegistrationIn(BaseModel):
 @router.post("/public/register")
 def public_register(body: RegistrationIn, db: Session = Depends(get_db)):
     """Register one delegate or a delegation of 6. Creates delegates + group, sends email."""
+    _require_registration_open()
     from app.services_email import send_registration_email
     if body.registration_type == "delegation":
         members = body.delegation_members or []
@@ -1204,6 +1224,7 @@ class PaymentIn(BaseModel):
 @router.post("/public/payment")
 def public_payment(body: PaymentIn, db: Session = Depends(get_db)):
     """Upload payment screenshot for a registered delegate (identified by reference number)."""
+    _require_registration_open()
     d = db.query(models.Delegate).filter(models.Delegate.checkin_code == body.reference.strip().upper()).first()
     if not d:
         raise HTTPException(404, "Invalid reference number")
@@ -1222,6 +1243,7 @@ class PublicLoginIn(BaseModel):
 @router.post("/public/login")
 def public_login(body: PublicLoginIn, db: Session = Depends(get_db)):
     """Login with delegate reference number → returns JWT token for portal access."""
+    _require_registration_open()
     ref = body.reference.strip().upper()
     d = db.query(models.Delegate).filter(models.Delegate.checkin_code == ref).first()
     if not d:
@@ -1346,6 +1368,7 @@ def portal_notes_delete(nid: int, d=Depends(_current_delegate), db: Session = De
 @router.post("/public/upload")
 async def public_upload(f: UploadFile = File(...)):
     """Public file upload for payment screenshots. Validated, size-capped."""
+    _require_registration_open()
     ext = os.path.splitext(f.filename or "")[1].lower()
     allowed_payment = {".png", ".jpg", ".jpeg", ".webp"}
     if ext not in allowed_payment:

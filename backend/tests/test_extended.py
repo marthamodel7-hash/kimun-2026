@@ -403,9 +403,25 @@ def test_notifications_unread_endpoint():
 # PUBLIC REGISTRATION + PORTAL TESTS
 # =====================================================================
 
-def test_public_committees():
-    """Public committees endpoint returns seed committees without auth."""
+def test_public_committees(monkeypatch):
+    """Public committees endpoint honours the delegate-registration gate.
+
+    Locked spec: while registration is closed the public site exposes only the
+    homepage and the team application, so this endpoint must refuse. Flipping
+    the gate must restore the original behaviour (seed committees, no auth).
+    """
+    from app import api
+
     c = get_client()
+
+    # Gate closed ->403, so a hidden UI cannot be bypassed with a direct call.
+    monkeypatch.setattr(api, "DELEGATE_REGISTRATION_OPEN", False)
+    r = c.get("/api/public/committees")
+    assert r.status_code == 403
+    assert "opens soon" in r.json()["detail"].lower()
+
+    # Gate open -> seed committees without auth (original behaviour).
+    monkeypatch.setattr(api, "DELEGATE_REGISTRATION_OPEN", True)
     r = c.get("/api/public/committees")
     assert r.status_code == 200
     names = [x["name"] for x in r.json()]
